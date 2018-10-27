@@ -1,0 +1,24 @@
+menu "Python Packages"
+
+source "$BR2_EXTERNAL_YARMP_PATH/package/python-mpd2/Config.in"
+source "$BR2_EXTERNAL_YARMP_PATH/package/python-rpio/Config.in"
+source "$BR2_EXTERNAL_YARMP_PATH/package/python-evdev/Config.in"
+
+endmenu
+
+
+menu "WLAN Configuration"
+
+config BR2_TARGET_WLAN_SSID
+        string "WLAN SSID"
+        default "mywlan"
+        help
+         sets the wlan-ssid to connect to
+
+config BR2_TARGET_WLAN_PSK
+        string "WLAN PSK"
+        default "mywlanpsk"
+        help
+         sets the pre shared key for the configured wlan ssid
+
+endmenu

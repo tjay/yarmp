@@ -1,0 +1,8 @@
+config BR2_PACKAGE_PYTHON_MPD2
+	bool "python-mpd2"
+	depends on BR2_PACKAGE_PYTHON
+	help
+	  python-mpd2 is a Python library which provides a client interface for the Music Player Daemon.
+	  
+
+	  https://github.com/Mic92/python-mpd2
