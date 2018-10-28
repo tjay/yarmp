@@ -1,3 +1,20 @@
 YARMP - Yet Another Raspberry Muisc Player
 
-Buildroot https://buildroot.org/ for Pi Zero W with JustBoom Amp Zero pHAT
+
+External Buildroot https://buildroot.org for following hardware:
+
+Pi Zero W
+JustBoom Amp Zero pHAT
+2 x KY-040 Rotary Encoder
+RDM6300 125Khz RFID Reader
+
+The main purpose is to create a fully configured fast-booting SD card.
+Functionalities will be inspired by the phoniebox project https://github.com/MiczFlor/RPi-Jukebox-RFID.
+
+TODOS:
+# a lot
+
+Links that helped to create this:
+https://www.kampis-elektroecke.de/?page_id=3248 
+https://www.mjoldfield.com/atelier/2017/03/rpi-devicetree.html
+
