@@ -23,6 +23,8 @@ dtoverlay=pi3-miniuart-bt
 dtparam=audio=off
 dtoverlay=pi3-disable-bt
 dtoverlay=justboom-dac
+dtoverlay=rotary-encoder,pin_a=5,pin_b=6,relative_axis=1
+dtoverlay=gpio-key,gpio=13,keycode=28,label="ENTER"
 gpu_mem=16
 
 hdmi_group=2
