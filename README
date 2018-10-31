@@ -14,6 +14,15 @@ Functionalities will be inspired by the phoniebox project https://github.com/Mic
 TODOS:
 # a lot
 
+BUILD:
+
+[user]$ git clone git://git.buildroot.net/buildroot
+[user]$ git clone https://github.com/tjay/yarmp
+[user]$ mkdir yarmp-build
+[user]$ cd buildroot
+[user]$ make O=../yarmp-build/ BR2_EXTERNAL=../yarmp yarmp_defconfig
+[user]$ cd ../yarmp-build/
+[user]$ make
 
 Links that helped to create this:
 https://www.kampis-elektroecke.de/?page_id=3248 
