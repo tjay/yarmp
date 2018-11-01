@@ -12,4 +12,3 @@ PYTHON_MPD2_LICENSE = MIT
 PYTHON_MPD2_LICENSE_FILES = PKG-INFO
 
 $(eval $(python-package))
-$(eval $(host-python-package))

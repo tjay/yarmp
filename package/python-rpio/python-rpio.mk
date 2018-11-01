@@ -13,4 +13,3 @@ PYTHON_RPIO_SUBDIR = .
 PYTHON_RPIO_EXCLUDES = source/scripts/man 
 
 $(eval $(python-package))
-$(eval $(host-python-package))

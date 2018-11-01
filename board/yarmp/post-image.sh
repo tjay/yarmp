@@ -11,29 +11,20 @@ cat << __EOF__ > "${BINARIES_DIR}/rpi-firmware/config.txt"
 
 kernel=zImage
 device_tree=bcm2708-rpi-0-w.dtb
-disable_overscan=1
+disable_splash=1
+boot_delay=0
 
-gpu_mem_256=100
-gpu_mem_512=100
-gpu_mem_1024=100
+arm_freq_min=600
+gpu_mem_512=64
+start_x=0
 
-dtparam=i2c=on,i2s=on,spi=on
-
-dtoverlay=pi3-miniuart-bt
+dtparam=i2c=on,i2s=on
 dtparam=audio=off
-dtoverlay=pi3-disable-bt
+
 dtoverlay=justboom-dac
 dtoverlay=rotary-encoder,pin_a=5,pin_b=6,relative_axis=1
 dtoverlay=gpio-key,gpio=13,keycode=28,label="ENTER"
-gpu_mem=16
 
-hdmi_group=2
-hdmi_mode=4
-hdmi_force_mode=1
-edid_content_type=0
-hdmi_blanking=2
-
-arm_freq_min=400
 
 __EOF__
 
