@@ -1,0 +1,31 @@
+# Startup the system
+null::sysinit:/sbin/modprobe -q brcmfmac
+null::sysinit:/bin/mount -t proc proc /proc
+#null::sysinit:/bin/mount -o remount,rw /
+null::sysinit:/bin/mkdir -p /dev/pts /dev/shm
+null::sysinit:/bin/mount -a
+null::sysinit:/sbin/swapon -a
+null::sysinit:/bin/ln -sf /proc/self/fd /dev/fd
+null::sysinit:/bin/ln -sf /proc/self/fd/0 /dev/stdin
+null::sysinit:/bin/ln -sf /proc/self/fd/1 /dev/stdout
+null::sysinit:/bin/ln -sf /proc/self/fd/2 /dev/stderr
+null::sysinit:/bin/hostname -F /etc/hostname
+null::sysinit:/sbin/ifup lo
+
+#
+# start yarmp
+#
+
+
+#
+#
+#
+
+null::sysinit:/sbin/ifup wlan0
+null::sysinit:/sbin/dropbear -jk -b /etc/issue
+#ttyAMA0::respawn:/sbin/getty -L ttyAMA0 115200 vt100 # GENERIC_SERIAL
+
+# Stuff to do before rebooting
+null::shutdown:/sbin/ifdown -a
+null::shutdown:/sbin/swapoff -a
+null::shutdown:/bin/umount -a -r
