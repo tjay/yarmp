@@ -4,7 +4,6 @@ null::sysinit:/bin/mount -t proc proc /proc
 #null::sysinit:/bin/mount -o remount,rw /
 null::sysinit:/bin/mkdir -p /dev/pts /dev/shm
 null::sysinit:/bin/mount -a
-null::sysinit:/sbin/swapon -a
 null::sysinit:/bin/ln -sf /proc/self/fd /dev/fd
 null::sysinit:/bin/ln -sf /proc/self/fd/0 /dev/stdin
 null::sysinit:/bin/ln -sf /proc/self/fd/1 /dev/stdout
@@ -27,5 +26,4 @@ null::sysinit:/sbin/dropbear -jk -b /etc/issue
 
 # Stuff to do before rebooting
 null::shutdown:/sbin/ifdown -a
-null::shutdown:/sbin/swapoff -a
 null::shutdown:/bin/umount -a -r
