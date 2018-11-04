@@ -19,9 +19,8 @@ BUILD:
 [user]$ git clone git://git.buildroot.net/buildroot
 [user]$ git clone https://github.com/tjay/yarmp
 [user]$ mkdir yarmp-build
-[user]$ cd buildroot
-[user]$ make O=../yarmp-build/ BR2_EXTERNAL=../yarmp yarmp_defconfig
-[user]$ cd ../yarmp-build/
+[user]$ cd yarmp-build
+[user]$ cd ../buildroot/ && make O=../yarmp-build/ BR2_EXTERNAL=../yarmp yarmp_defconfig && cd -
 [user]$ make
 
 Links that helped to create this:

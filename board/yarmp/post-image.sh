@@ -15,7 +15,7 @@ disable_splash=1
 boot_delay=0
 
 arm_freq_min=600
-gpu_mem_512=64
+gpu_mem=15
 start_x=0
 
 dtparam=i2c=on,i2s=on
@@ -29,6 +29,11 @@ dtoverlay=gpio-key,gpio=13,keycode=28,label="ENTER"
 
 __EOF__
 
+#root=/dev/mmcblk0p2 rootwait console=tty1 console=ttyAMA0,115200 
+#root=/dev/mmcblk0p2 rootwait quiet
+cat << __EOF__ > "${BINARIES_DIR}/rpi-firmware/cmdline.txt"
+root=/dev/mmcblk0p2 rootfstype=squashfs rootwait ro quiet
+__EOF__
 
 
 rm -rf "${GENIMAGE_TMP}"
