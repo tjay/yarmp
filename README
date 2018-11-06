@@ -24,6 +24,7 @@ BUILD:
 [user]$ make
 
 Links that helped to create this:
+http://www.mschoeffler.de/2018/01/05/arduino-tutorial-how-to-use-the-rdm630-rdm6300-rfid-reader/
 https://www.kampis-elektroecke.de/?page_id=3248 
 https://www.mjoldfield.com/atelier/2017/03/rpi-devicetree.html
 https://github.com/gvalkov/python-evdev/issues/15#issuecomment-30301610
