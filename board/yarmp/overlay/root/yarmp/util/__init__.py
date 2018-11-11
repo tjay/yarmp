@@ -1,6 +1,7 @@
 from mpd import MPDClient
 from mpd.base import ConnectionError
 import threading, evdev
+from ..config import Config
 
 class Message:
     def __init__(self, name, value=None):

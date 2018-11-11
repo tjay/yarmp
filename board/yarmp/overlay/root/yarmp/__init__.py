@@ -1,6 +1,7 @@
 
 import Queue
 from controls import Track, Volume, Rfid
+from .util import YarmpMPD
 
 class Yarmp:
     def __init__(self):
