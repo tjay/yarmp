@@ -2,21 +2,21 @@ import serial, re, time, threading
 from .config import Config
 from .util import YarmpMPD, Message, EvDevControl
 
+#https://github.com/gvalkov/python-evdev/issues/15#issuecomment-21807699
+
 class Volume(EvDevControl):
 
-  def __init__(self, queue):
+  def __init__(self, queue, value = 0):
     self.get_device('rotary@{:x}'.format(Config.volume_gpio))
     self.value_range = [Config.volume_min,Config.volume_max]
+    self.value = value
     super(Volume, self).__init__(queue)
 
   def run(self):
-    mpd = YarmpMPD()
     for event in self.device.read_loop():
       if event.type == 2:
-        value = int(mpd.status()['volume']) + event.value
-        if value in self.value_range:
-          self.queue.put(Message("Volume",value))
-          mpd.setvol(value)
+        if self.value + event.value in self.value_range:
+          self.queue.put(Message("Volume",self.value + event.value))
     self.queue.put(Message("exit"))
 
 class Track(EvDevControl):
@@ -44,7 +44,6 @@ class Rfid(threading.Thread):
     threading.Thread.__init__(self)
 
   def _run(self):
-    mpd = YarmpMPD()
     with serial.Serial(self.serial_device, self.bau_rate) as s:
       while True:
         if s.read() == self.startbyte:
@@ -60,7 +59,6 @@ class Rfid(threading.Thread):
             if (id in self.ids and read_time > self.ids[id]) or id not in self.ids:
               self.ids[id] = read_time + self.rescan_timeout
               self.queue.put(Message("rfid",self.ids))
-              mpd.setvol(int(mpd.status()['volume']) + 1)
           except Exception:
             # TODO error-logger
             pass
