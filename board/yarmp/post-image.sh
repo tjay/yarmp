@@ -23,9 +23,11 @@ dtparam=audio=off
 
 dtoverlay=pi3-miniuart-bt
 dtoverlay=justboom-dac
-dtoverlay=rotary-encoder,pin_a=5,pin_b=6,relative_axis=1
-dtoverlay=gpio-key,gpio=13,keycode=28,label="ENTER"
+dtoverlay=rotary-encoder,pin_a=27,pin_b=22,relative_axis=1
+dtoverlay=rotary-encoder,pin_a=9,pin_b=11,relative_axis=1
 
+dtoverlay=gpio-key,gpio=17,keycode=59,label="KEY_F1"
+dtoverlay=gpio-key,gpio=10,keycode=60,label="KEY_F2"
 
 __EOF__
 
