@@ -42,7 +42,6 @@ class Rfid(threading.Thread):
     self.serial_device = Config.rfid_serial
     self.ids = {}
     threading.Thread.__init__(self)
-    self.start()
 
   def _run(self):
     mpd = YarmpMPD()
