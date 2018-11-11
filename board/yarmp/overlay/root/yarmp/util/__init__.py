@@ -34,7 +34,6 @@ class EvDevControl(threading.Thread):
   def __init__(self, queue):
     self.queue = queue
     threading.Thread.__init__(self)
-    self.start()
   
   def get_device(self, device_name):
     self.device = None

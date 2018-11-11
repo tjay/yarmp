@@ -18,6 +18,9 @@ class Yarmp:
         #       client.add('mac.mp3')
         self.mpd.setvol(18)
         self.mpd.play(0)
+        self.rfid.start()
+        self.volume.start()
+        self.track.start()
         while True:
             message = self.queue.get()
             print message.name, message.value
