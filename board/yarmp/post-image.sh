@@ -31,8 +31,6 @@ dtoverlay=gpio-key,gpio=10,keycode=60,label="KEY_F2"
 
 __EOF__
 
-#root=/dev/mmcblk0p2 rootwait console=tty1 console=ttyAMA0,115200 
-#root=/dev/mmcblk0p2 rootwait quiet
 cat << __EOF__ > "${BINARIES_DIR}/rpi-firmware/cmdline.txt"
 root=/dev/mmcblk0p2 rootfstype=squashfs rootwait ro quiet
 __EOF__

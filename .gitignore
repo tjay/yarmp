@@ -1,1 +1,4 @@
+.idea/
+.vscode/
 *.mp3
+*.pyc
