@@ -7,7 +7,7 @@ class Volume(EvDevControl):
   def __init__(self, queue):
     self.get_device('rotary@{:x}'.format(Config.volume_gpio))
     self.value_range = [Config.volume_min,Config.volume_max]
-    EvDevControl.__init__(self,queue)
+    super(Volume, self).__init__(queue)
 
   def run(self):
     mpd = YarmpMPD()
@@ -15,19 +15,19 @@ class Volume(EvDevControl):
       if event.type == 2:
         value = int(mpd.status()['volume']) + event.value
         if value in self.value_range:
-          print "Volume", value
+          self.queue.put(Message("Volume",value))
           mpd.setvol(value)
     self.queue.put(Message("exit"))
 
 class Track(EvDevControl):
   def __init__(self, queue):
     self.get_device('rotary@{:x}'.format(Config.track_gpio))
-    EvDevControl.__init__(self,queue)
+    super(Track, self).__init__(queue)
 
   def run(self):
     for event in self.device.read_loop():
       if event.type == 2:
-        print "Track", event.value
+        self.queue.put(Message("Track",event.value))
     self.queue.put(Message("exit"))
 
 
@@ -62,6 +62,6 @@ class Rfid(threading.Thread):
               self.ids[id] = read_time + self.rescan_timeout
               self.queue.put(Message("rfid",self.ids))
               mpd.setvol(int(mpd.status()['volume']) + 1)
-          except Exception as e:
+          except Exception:
             # TODO error-logger
             pass
