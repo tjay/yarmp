@@ -6,7 +6,7 @@ class Volume(EvDevControl):
 
   def __init__(self, queue):
     self.get_device('rotary@{:x}'.format(Config.volume_gpio))
-    self.value_range = [Config.volume_min,Config.volume_max+1]
+    self.value_range = [Config.volume_min,Config.volume_max]
     EvDevControl.__init__(self,queue)
 
   def run(self):
@@ -15,10 +15,11 @@ class Volume(EvDevControl):
       if event.type == 2:
         value = int(mpd.status()['volume']) + event.value
         if value in self.value_range:
+          print "Volume", value
           mpd.setvol(value)
     self.queue.put(Message("exit"))
 
-class Track(threading.Thread):
+class Track(EvDevControl):
   def __init__(self, queue):
     self.get_device('rotary@{:x}'.format(Config.track_gpio))
     EvDevControl.__init__(self,queue)
@@ -26,7 +27,7 @@ class Track(threading.Thread):
   def run(self):
     for event in self.device.read_loop():
       if event.type == 2:
-        print event.value
+        print "Track", event.value
     self.queue.put(Message("exit"))
 
 
