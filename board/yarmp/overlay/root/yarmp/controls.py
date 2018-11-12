@@ -11,7 +11,6 @@ class Volume(EvDevControl):
 
   def run(self):
     for event in self.device.read_loop():
-      self.queue.put(Message("Volume"))
       if event.type == 2:
         value = int(self.mpd.status()['volume']) + event.value
         if value in self.value_range:
@@ -26,7 +25,6 @@ class Track(EvDevControl):
 
   def run(self):
     for event in self.device.read_loop():
-      self.queue.put(Message("Track"))
       if event.type == 2:
         self.queue.put(Message("Track",event.value))
     self.queue.put(Message("exit"))
