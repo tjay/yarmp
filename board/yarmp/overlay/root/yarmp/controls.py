@@ -2,21 +2,21 @@ import serial, re, time, threading
 from .config import Config
 from .util import YarmpMPD, Message, EvDevControl
 
-#https://github.com/gvalkov/python-evdev/issues/15#issuecomment-21807699
-
 class Volume(EvDevControl):
 
-  def __init__(self, queue, value = 0):
+  def __init__(self, queue):
     self.get_device('rotary@{:x}'.format(Config.volume_gpio))
-    self.value_range = [Config.volume_min,Config.volume_max]
-    self.value = value
+    self.value_range = range(Config.volume_min,Config.volume_max+1)
     super(Volume, self).__init__(queue)
 
   def run(self):
     for event in self.device.read_loop():
+      self.queue.put(Message("Volume"))
       if event.type == 2:
-        if self.value + event.value in self.value_range:
-          self.queue.put(Message("Volume",self.value + event.value))
+        value = int(self.mpd.status()['volume']) + event.value
+        if value in self.value_range:
+          self.mpd.setvol(value)
+          self.queue.put(Message("Volume",value))
     self.queue.put(Message("exit"))
 
 class Track(EvDevControl):
@@ -26,6 +26,7 @@ class Track(EvDevControl):
 
   def run(self):
     for event in self.device.read_loop():
+      self.queue.put(Message("Track"))
       if event.type == 2:
         self.queue.put(Message("Track",event.value))
     self.queue.put(Message("exit"))
@@ -43,10 +44,10 @@ class Rfid(threading.Thread):
     self.ids = {}
     threading.Thread.__init__(self)
 
-  def _run(self):
+  def run(self):
     with serial.Serial(self.serial_device, self.bau_rate) as s:
-      while True:
-        if s.read() == self.startbyte:
+      while 42:
+        if s.read() == self.start_byte:
           try:
             d = map(lambda x: int(x,16), re.findall('..',s.read(12)))
             chcksm = d[0]
