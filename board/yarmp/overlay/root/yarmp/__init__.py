@@ -19,9 +19,8 @@ class Yarmp:
         self.mpd.play(0)
         while 42:
             try:
-                if not self.queue.empty():
-                    message = self.queue.get_nowait()
-                    print message.name, message.value
+                message = self.queue.get()
+                print message.name, message.value
             except (KeyboardInterrupt, SystemExit):
                 print "exit" # wont work :/
                 exit(0)

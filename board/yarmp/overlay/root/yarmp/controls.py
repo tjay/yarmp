@@ -40,8 +40,9 @@ class Rfid(threading.Thread):
     self.queue = queue
     self.serial_device = Config.rfid_serial
     self.ids = {}
-    threading.Thread.__init__(self)
-
+    super(Rfid, self).__init__()
+    self.start()
+    
   def run(self):
     with serial.Serial(self.serial_device, self.bau_rate) as s:
       while 42:
