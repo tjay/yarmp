@@ -18,14 +18,14 @@ class Yarmp:
         self.mpd.setvol(18)
         self.mpd.play(0)
         while 42:
-            if not self.queue.empty():
-                message = self.queue.get_nowait()
-                print message.name, message.value
-                if message.name=="exit":
-                    self.rfid.join()
-                    self.volume.join()
-                    self.track.join()
-                    exit()
+            try:
+                if not self.queue.empty():
+                    message = self.queue.get_nowait()
+                    print message.name, message.value
+            except (KeyboardInterrupt, SystemExit):
+                print "exit" # wont work :/
+                exit(0)
+
 
 if __name__ == "__main__":
     Yarmp()
