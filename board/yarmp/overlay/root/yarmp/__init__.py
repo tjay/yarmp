@@ -1,25 +1,26 @@
-import Queue, logging as log, importlib as imp, cPickle as cp, os
+import Queue, logging as log, importlib as imp, cPickle as cp, os, threading
 from config import Config
-import threading
 from devices import YarmpMPD, EvDevReceiver, RfidReceiver
 
-class Yarmp:
+class Yarmp(object):
     def __init__(self):
         self.mpd = YarmpMPD()
         self.queue = Queue.Queue()
 
         cm = imp.import_module('yarmp.controls')
-        self.controls = [ getattr(cm,c,cm.Control)(self.mpd) for c in set(Config.controls.values()) ]
+        controls = { c.lower(): getattr(cm,c,cm.Control)(self.mpd) for c in set(Config.controls.values()) }
+
+        log.debug("Volume {!r}".format(controls["volume"].volume))
 
         self.evdev_rcv = EvDevReceiver(self.queue)
         self.rfid_rcv = RfidReceiver(self.queue, Config.rfid_tty)
-
+        
         log.debug("Start")
 
         while 42:
             try:
                 event = self.queue.get(timeout=1)
-                for c in self.controls: c.handle(event)
+                for c in controls.values(): c.handle(event)
             except Queue.Empty: pass
             except NotImplementedError as e:
                 log.error("NotImplementedError %s" % e.message)
@@ -47,13 +48,12 @@ class States(object):
       self._save_thread.start()
 
   def _save_states(self):
-    print type(self).__name__, self.states
     try: # pickle in states[] listet vars to class.name-File
       if self.states:
         with open(os.path.join(Config.states_dir,type(self).__name__), 'w') as f:
           cp.dump({state: getattr(self,state) for state in self.states},f)
     except Exception as e:
-      log.debug(e.message)
+      log.error(e.message)
   
   def _load_states(self):
     try: # unpickle in states[] listet vars to class.name-File
