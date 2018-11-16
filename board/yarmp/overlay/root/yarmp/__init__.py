@@ -1,5 +1,6 @@
-import Queue, logging as log, importlib as imp
+import Queue, logging as log, importlib as imp, cPickle as cp, os
 from config import Config
+import threading
 from devices import YarmpMPD, EvDevReceiver, RfidReceiver
 
 class Yarmp:
@@ -28,9 +29,46 @@ class Yarmp:
                 self.rfid_rcv.stop()
                 exit(0)
 
-class Control(object):
-  def __init__(self, mpd):
+class States(object):
+
+  states = []
+
+  def __init__(self,save_states_time=3):
+    self._load_states()
+    self._save_states_time = save_states_time
+    self._save_thread = None
+    
+  def save_state(self):
+    if self.states:
+      if self._save_thread:
+        self._save_thread.cancel()
+        self._save_thread.join()
+      self._save_thread = threading.Timer(self._save_states_time, self._save_states)
+      self._save_thread.start()
+
+  def _save_states(self):
+    print type(self).__name__, self.states
+    try: # pickle in states[] listet vars to class.name-File
+      if self.states:
+        with open(os.path.join(Config.states_dir,type(self).__name__), 'w') as f:
+          cp.dump({state: getattr(self,state) for state in self.states},f)
+    except Exception as e:
+      log.debug(e.message)
+  
+  def _load_states(self):
+    try: # unpickle in states[] listet vars to class.name-File
+      if self.states:
+        with open(os.path.join(Config.states_dir,type(self).__name__), 'r') as f:
+          for key,value in cp.load(f).items():
+            if key in self.states:
+              setattr(self,key,value)
+    except: pass
+
+class Control(States):
+
+  def __init__(self, mpd, save_states_time=3):
     self.mpd = mpd
+    super(Control, self).__init__(save_states_time=save_states_time)
 
   def error(self,e):
     log.error(e.value)
@@ -41,6 +79,7 @@ class Control(object):
     if Config.controls[event.device] == type(self).__name__:
       if hasattr(self,event.function):
         getattr(self,event.function)(event)
+        self.save_state()
       else:
         raise NotImplementedError("{!r}{!r}".format(type(self).__name__,event.function))
     elif type(self).__name__ == "Control":

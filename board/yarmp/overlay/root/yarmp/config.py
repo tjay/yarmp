@@ -2,6 +2,7 @@
 
 class Config:
     mpd_socket='/var/run/mpd.socket'
+    states_dir='/storage/config'
     rfid_tty = "ttyAMA0"
     controls = { 
         'rotary@9' : "Volume",
@@ -10,5 +11,6 @@ class Config:
         'button@11' : "Track",
         'ttyAMA0' :  "Card"
     }
+    volume_default = 20
     volume_min = 0
     volume_max = 100

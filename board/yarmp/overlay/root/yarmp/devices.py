@@ -61,7 +61,7 @@ class EvDevReceiver(Receiver):
     
     @property
     def devices(self):
-        try: self.__devices
+        try: self.__devices 
         except AttributeError:
             self.__devices = {dev.fd: dev for dev in [evdev.InputDevice(fn) for fn in evdev.list_devices()]}
         return self.__devices
