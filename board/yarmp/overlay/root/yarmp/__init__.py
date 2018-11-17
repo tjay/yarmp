@@ -4,32 +4,32 @@ from time import time
 from devices import YarmpMPD, EvDevReceiver, RfidReceiver
 
 class Yarmp(object):
-    def __init__(self):
-        self.mpd = YarmpMPD()
-        self.queue = Queue.Queue()
+  def __init__(self):
+    self.mpd = YarmpMPD()
+    self.queue = Queue.Queue()
 
-        cm = imp.import_module('yarmp.controls')
-        controls = { c.lower(): getattr(cm,c,cm.Control)(self.mpd) for c in set(Config.controls.values()) }
+    cm = imp.import_module('yarmp.controls')
+    controls = { c.lower(): getattr(cm,c,cm.Control)(self.mpd) for c in set(Config.controls.values()) }
 
-        log.debug("Volume {!r}".format(controls["volume"].volume))
+    log.debug("Volume {!r}".format(controls["volume"].volume))
 
-        self.evdev_rcv = EvDevReceiver(self.queue)
-        self.rfid_rcv = RfidReceiver(self.queue, Config.rfid_tty)
-        
-        log.debug("Start")
+    self.evdev_rcv = EvDevReceiver(self.queue)
+    self.rfid_rcv = RfidReceiver(self.queue, Config.rfid_tty)
+    
+    log.debug("Start")
 
-        while 42:
-            try:
-                event = self.queue.get(timeout=1)
-                for c in controls.values(): c.handle(event)
-            except Queue.Empty: pass
-            except NotImplementedError as e:
-                log.error("NotImplementedError %s" % e.message)
-            except (KeyboardInterrupt, SystemExit):
-                log.error("Exit on UserInterrupt")
-                self.evdev_rcv.stop()
-                self.rfid_rcv.stop()
-                exit(0)
+    while 42:
+      try:
+        event = self.queue.get(timeout=1)
+        for c in controls.values(): c.handle(event)
+      except Queue.Empty: pass
+      except NotImplementedError as e:
+        log.error("NotImplementedError %s" % e.message)
+      except (KeyboardInterrupt, SystemExit):
+        log.error("Exit on UserInterrupt")
+        self.evdev_rcv.stop()
+        self.rfid_rcv.stop()
+        exit(0)
 
 class TrackState(object):
   def __init__(self, rfid, mpd):
@@ -64,7 +64,7 @@ class States(object):
   def _save_states(self):
     try: # pickle in states[] listed vars to class.name-File
       if self.states:
-        with open(os.path.join(Config.states_dir,type(self).__name__), 'w') as f:
+        with open(os.path.join(Config.states_dir,"."+type(self).__name__), 'w') as f:
           cp.dump({state: getattr(self,state) for state in self.states},f)
         if self._looping_time > 0:
           self.save_state(looping=True)
@@ -74,7 +74,7 @@ class States(object):
   def _load_states(self):
     try: # unpickle in states[] listet vars to class.name-File
       if self.states:
-        with open(os.path.join(Config.states_dir,type(self).__name__), 'r') as f:
+        with open(os.path.join(Config.states_dir,"."+type(self).__name__), 'r') as f:
           for key,value in cp.load(f).items():
             if key in self.states:
               setattr(self,key,value)
