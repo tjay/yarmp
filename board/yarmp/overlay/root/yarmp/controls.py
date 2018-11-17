@@ -1,6 +1,6 @@
 from .config import Config
 import logging as log, os
-from yarmp import Control
+from yarmp import Control, TrackState
 from time import time
 from collections import OrderedDict
 
@@ -21,16 +21,6 @@ class LastUpdatedOrderedFIFODict(OrderedDict):
     while len(self) > self.maxsize:
       OrderedDict.popitem(self, last=False)
     OrderedDict.__setitem__(self, key, value)
-
-class TrackState(object):
-  def __init__(self, rfid, mpd):
-    status = mpd.status()
-    self.time = time()
-    self.rfid = rfid
-    self.track = mpd.currentsong()
-    self.play = status["state"] == "play"
-    self.elapsed = status["time"] if not self.track.startswith("http") else 0
-
 
 
 class Volume(Control):

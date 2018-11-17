@@ -1,5 +1,6 @@
 import Queue, logging as log, importlib as imp, cPickle as cp, os, threading
 from config import Config
+from time import time
 from devices import YarmpMPD, EvDevReceiver, RfidReceiver
 
 class Yarmp(object):
@@ -30,6 +31,15 @@ class Yarmp(object):
                 self.rfid_rcv.stop()
                 exit(0)
 
+class TrackState(object):
+  def __init__(self, rfid, mpd):
+    status = mpd.status()
+    self.time = time()
+    self.rfid = rfid
+    self.track = mpd.currentsong()
+    self.play = status["state"] == "play"
+    self.elapsed = status["time"] if not self.track.startswith("http") else 0
+
 class States(object):
 
   states = []
@@ -46,12 +56,13 @@ class States(object):
     if self.states:
       if self._save_thread:
         self._save_thread.cancel()
+        # Do we need this?
         self._save_thread.join()
       self._save_thread = threading.Timer(save_states_time, self._save_states)
       self._save_thread.start()
 
   def _save_states(self):
-    try: # pickle in states[] listet vars to class.name-File
+    try: # pickle in states[] listed vars to class.name-File
       if self.states:
         with open(os.path.join(Config.states_dir,type(self).__name__), 'w') as f:
           cp.dump({state: getattr(self,state) for state in self.states},f)
