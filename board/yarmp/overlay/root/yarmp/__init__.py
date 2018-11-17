@@ -34,17 +34,20 @@ class States(object):
 
   states = []
 
-  def __init__(self,save_states_time=3):
+  def __init__(self,save_states_time=3, save_loop_time = 0):
     self._load_states()
     self._save_states_time = save_states_time
+    self._looping_time = save_loop_time
     self._save_thread = None
     
-  def save_state(self):
+  def save_state(self, looping = False):
+    if looping:
+      save_states_time = self._looping_time
     if self.states:
       if self._save_thread:
         self._save_thread.cancel()
         self._save_thread.join()
-      self._save_thread = threading.Timer(self._save_states_time, self._save_states)
+      self._save_thread = threading.Timer(save_states_time, self._save_states)
       self._save_thread.start()
 
   def _save_states(self):
@@ -52,6 +55,8 @@ class States(object):
       if self.states:
         with open(os.path.join(Config.states_dir,type(self).__name__), 'w') as f:
           cp.dump({state: getattr(self,state) for state in self.states},f)
+        if self._looping_time > 0:
+          self.save_state(looping=True)
     except Exception as e:
       log.error(e.message)
   
@@ -66,9 +71,12 @@ class States(object):
 
 class Control(States):
 
-  def __init__(self, mpd, save_states_time=3):
+  def __init__(self, mpd, save_states_time=3, save_loop_time=0):
     self.mpd = mpd
-    super(Control, self).__init__(save_states_time=save_states_time)
+    super(Control, self).__init__(
+      save_states_time=save_states_time,
+      save_loop_time = save_loop_time
+    )
 
   def error(self,e):
     log.error(e.value)

@@ -9,7 +9,7 @@ class Config:
         'button@a' : "Volume",
         'rotary@1b' : "Track",
         'button@11' : "Track",
-        'ttyAMA0' :  "Card"
+        'ttyAMA0' :  "Track"
     }
     volume_default = 20
     volume_min = 0
