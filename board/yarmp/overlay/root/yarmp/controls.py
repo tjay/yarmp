@@ -66,7 +66,7 @@ class Track(Control):
 
   def __init__(self, mpd):
     self.last_rfids = LastUpdatedOrderedFIFODict(maxsize=10)
-    super(Track, self).__init__(mpd, save_loop_time=10)
+    super(Track, self).__init__(mpd)
 
   ### events #############
 
@@ -91,8 +91,7 @@ class Track(Control):
     current_rfid, _ = self.last_rfids.newest_item()
     if current_rfid <> e.value:
       # TODO make *bling*
-      if self.track_state:
-        self.last_rfids[current_rfid] = self.track_state
+      self.last_rfids[current_rfid] = self.track_state
       # resume old state?
       if e.value in self.last_rfids:
         # TODO: config resume Time

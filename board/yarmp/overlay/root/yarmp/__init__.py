@@ -1,7 +1,7 @@
 import Queue, logging as log, importlib as imp, cPickle as cp, os, threading
 from config import Config
 from time import time
-from devices import YarmpMPD, EvDevReceiver, RfidReceiver
+from devices import YarmpMPD, EvDevReceiver, RfidReceiver, Event
 
 class Yarmp(object):
   def __init__(self):
@@ -20,9 +20,14 @@ class Yarmp(object):
 
     while 42:
       try:
-        event = self.queue.get(timeout=1)
+        event = self.queue.get(timeout=2)
         for c in controls.values(): c.handle(event)
-      except Queue.Empty: pass
+      except Queue.Empty:
+        if controls["track"].track_state.play:
+          # save the state only if we are playing sth
+          controls["track"].set_save_loop(10)
+        else:
+          controls["track"].set_save_loop(0)
       except NotImplementedError as e:
         log.error("NotImplementedError %s" % e.message)
       except (KeyboardInterrupt, SystemExit):
@@ -61,10 +66,14 @@ class States(object):
       self._save_thread = threading.Timer(save_states_time, self._save_states)
       self._save_thread.start()
 
+  def set_save_loop(self,save_loop_time):
+    self._looping_time = save_loop_time
+
   def _save_states(self):
     try: # pickle in states[] listed vars to class.name-File
       if self.states:
-        with open(os.path.join(Config.states_dir,"."+type(self).__name__), 'w') as f:
+        with open(os.path.join(Config.base_dir,"."+type(self).__name__), 'w') as f:
+          log.debug("Save the state of {!r}".format(type(self).__name__))
           cp.dump({state: getattr(self,state) for state in self.states},f)
         if self._looping_time > 0:
           self.save_state(looping=True)
@@ -74,11 +83,15 @@ class States(object):
   def _load_states(self):
     try: # unpickle in states[] listet vars to class.name-File
       if self.states:
-        with open(os.path.join(Config.states_dir,"."+type(self).__name__), 'r') as f:
+        with open(os.path.join(Config.base_dir,"."+type(self).__name__), 'r') as f:
           for key,value in cp.load(f).items():
             if key in self.states:
               setattr(self,key,value)
     except: pass
+
+class Rfid(object):
+  pass
+
 
 class Control(States):
 

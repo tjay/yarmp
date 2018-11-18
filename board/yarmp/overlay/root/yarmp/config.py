@@ -1,8 +1,10 @@
 
 
-class Config:
+class Config(object):
     mpd_socket='/var/run/mpd.socket'
-    states_dir='/storage'
+
+    base_dir='/storage'
+
     rfid_tty = "ttyAMA0"
     controls = { 
         'rotary@9' : "Volume",
