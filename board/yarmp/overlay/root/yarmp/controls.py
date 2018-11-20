@@ -1,27 +1,11 @@
-from .config import Config
 import logging as log, os
-from yarmp import Control, TrackState
 from time import time
-from collections import OrderedDict
 
-class LastUpdatedOrderedFIFODict(OrderedDict):
-  def __init__(self, maxsize = 10):
-    self.maxsize = maxsize
-    super(LastUpdatedOrderedFIFODict, self).__init__()
+from .utils import setInterval, LastUpdatedOrderedFIFODict, TrackState, Control
+from .config import Config
+import ympd as mpd
 
-  def oldest_item(self):
-    return next(iter(self.items()))
-
-  def newest_item(self):
-    return next(reversed(self.items()))
-  
-  def __setitem__(self, key, value):
-    if key in self:
-      del self[key]
-    while len(self) > self.maxsize:
-      OrderedDict.popitem(self, last=False)
-    OrderedDict.__setitem__(self, key, value)
-
+# pylint: disable=no-member
 
 class Volume(Control):
 
@@ -29,9 +13,9 @@ class Volume(Control):
 
   volume_range = range(Config.volume_min,Config.volume_max+1)
 
-  def __init__(self, mpd):
+  def __init__(self):
     self.mute = False
-    super(Volume, self).__init__(mpd)
+    super(Volume, self).__init__()
     if self.volume == 0: #dont start silent
       self.volume = Config.volume_default
   
@@ -52,32 +36,33 @@ class Volume(Control):
 
   @property
   def volume(self):
-    return int(self.mpd.status()['volume'])
+    return int(mpd.status()['volume'])
 
   # this will set the last Volume on init
   @volume.setter
   def volume(self, value):
     if value in self.volume_range:
-      self.mpd.setvol(value)
+      mpd.setvol(value)
 
 class Track(Control):
 
   states = ["track_state"]
 
-  def __init__(self, mpd):
+  def __init__(self):
+    self.check_play_state()
     self.last_rfids = LastUpdatedOrderedFIFODict(maxsize=10)
-    super(Track, self).__init__(mpd)
+    super(Track, self).__init__()
 
   ### events #############
 
   def button_up(self,e):
     log.debug("Track.button_up")
-    if getattr(self,"button_down_last",e.time) + 3 < e.time:
+    if getattr(self,"button_down_last",e.time) + 2 < e.time:
       log.debug("Track Pos0")
-      #self.mpd.seek(0,0)
+      #mpd.seek(0,0)
     else:
       log.debug("Track Pause")
-      #self.mpd.pause()
+      #mpd.pause()
 
   def button_down(self,e):
     self.button_down_last = e.time
@@ -88,33 +73,59 @@ class Track(Control):
 
   def id(self,e):
     log.debug("Card.id {:s}".format(e.value))
-    current_rfid, _ = self.last_rfids.newest_item()
-    if current_rfid <> e.value:
-      # TODO make *bling*
+    # TODO make *bling*
+    current_rfid = self.last_rfids.newest_item()
+    if current_rfid:
       self.last_rfids[current_rfid] = self.track_state
-      # resume old state?
-      if e.value in self.last_rfids:
-        # TODO: config resume Time
-        if self.last_rfids[e.value]["time"] + 60 > time():
-          # resume
+      if current_rfid <> e.value:
+        if  e.value in self.last_rfids and \
+            self.last_rfids[e.value].time + 60 > time():
+          # resume old state?
           log.debug("Track: Resume RFID {!r}".format(e.value))
+          self.start_playback(e.value,resume=True)
+        else:
+          log.debug("Track: Start RFID {!r}".format(e.value))
+          self.start_playback(e.value)
       else:
-        # start play rfid
-        log.debug("Track: Start RFID {!r}".format(e.value))
+        # do nothing
+        # TODO Resume / Restart / Unpause
+        log.debug("Track: RFID {!r} is currenty playing.".format(e.value))
+    else:
+      # start play rfid
+      log.debug("Track: Start RFID {!r}".format(e.value))
+      self.start_playback(e.value)
 
   #####################################
 
   @property
   def track_state(self):
-    current_rfid, _ = self.last_rfids.newest_item()
-    return TrackState(current_rfid,self.mpd)
+    if self.last_rfids:
+      current_rfid, _ = self.last_rfids.newest_item()
+      return TrackState(current_rfid)
   
   # this will set the last Track on init
   @track_state.setter
   def track_state(self,v):
     self.last_rfids[v.rfid] = v
     if v.play:
-      log.debug("Track: Resume after Boot {!r}".format(v.rfid))
+      log.debug("Track: Playing RFID {!r}".format(v.rfid))
+  
+  @setInterval(10)
+  def check_play_state(self):
+    if mpd.status().get("state",None) == "play":
+      # save state only on play
+      self.save_state(atcall=True)
+  
+  def start_playback(self,rfid, resume=False):
+    rfids = {"08008BDC09" : "http://rbb-fritz-live.cast.addradio.de/rbb/fritz/live/mp3/128/stream.mp3"}
+    if rfid in rfids:
+      mpd.clear()
+      mpd.add(rfids[rfid])
+      mpd.play(0)
+      self.track_state = TrackState(rfid)
+    else:
+      log.debug("Track: RFID {!r} unknown.".format(rfid))
+
     
 
 

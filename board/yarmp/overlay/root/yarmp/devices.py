@@ -1,48 +1,15 @@
 import threading, evdev, serial, re, logging as log
-from mpd import MPDClient
-from mpd.base import ConnectionError
 from time import time
 from select import select
-from config import Config
 
-class Event(object):
-    __slots__ = ['time', 'device', 'function', 'value']
-    def __init__(self, time, device, function, value):
-        self.time = time
-        self.device = device
-        self.function = function
-        self.value = value
-
-    def __str__(self):
-        msg = 'event at {:f}, code {!r}, type {!r}, val {!r}'
-        return msg.format(self.time, self.device, self.function, self.value)
-
-class YarmpMPD:
-    __slots__ = ['mpd']
-    def __init__(self):
-        self.mpd = MPDClient()
-        self.yarmp_connect()
-
-    def yarmp_connect(self):
-        self.mpd.connect(Config.mpd_socket)
-        self.mpd.idletimeout = None
-        self.mpd.timeout = None
-
-    def __getattr__(self, attr):
-        if hasattr(self.mpd, attr):
-            def wrapper(*args, **kw):
-                try:
-                    return getattr(self.mpd, attr)(*args, **kw)
-                except ConnectionError:
-                    self.mpd.connect(Config.mpd_socket)
-                    return getattr(self.mpd, attr)(*args, **kw)
-            return wrapper
-        raise AttributeError(attr)
+from .config import Config
+from .utils import Event
 
 class Receiver(threading.Thread):
-    __slots__ = ['stop_event','queue']
+
     def __init__(self, queue, name="Receiver"):
         self.stop_event = threading.Event()
+        self.parent = threading.current_thread()
         self.queue = queue
         super(Receiver, self).__init__(name=name, target=self.receive)
         self.start()
@@ -50,12 +17,8 @@ class Receiver(threading.Thread):
     def receive(self):
         raise NotImplementedError
 
-    def stop(self):
-        self.stop_event.set()
-        self.join()
-
 class EvDevReceiver(Receiver):
-    __slots__ = ['devices']
+
     def __init__(self, queue):
         super(EvDevReceiver, self).__init__(queue, name="EvDevReceiver")
     
@@ -69,6 +32,7 @@ class EvDevReceiver(Receiver):
     def receive(self):
         while not self.stop_event.is_set():
             r, _, _ = select(self.devices, [], [], 0.1)
+            if not self.parent.is_alive(): self.stop_event.set()
             for fd in r:
                 for e in self.devices[fd].read():
                     event = evdev.util.categorize(e)
@@ -81,7 +45,6 @@ class EvDevReceiver(Receiver):
                             self.queue.put(Event(e.timestamp(),self.devices[fd].name,"button_down",e.value))
 
 class RfidReceiver(Receiver):
-  __slots__ = ['devname']
 
   start_byte = "\x02"
   timeout = 1
@@ -94,6 +57,7 @@ class RfidReceiver(Receiver):
   def receive(self):
     with serial.Serial("/dev/%s"%self.devname, self.bau_rate, timeout = self.timeout) as s:
       while not self.stop_event.is_set():
+        if not self.parent.is_alive(): self.stop_event.set()
         if s.read() == self.start_byte:
           try:
             read_time = time()
