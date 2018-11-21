@@ -66,7 +66,7 @@ class States(object):
           log.debug("Save the state of {!r}".format(type(self).__name__))
           cp.dump({state: getattr(self,state) for state in self.states},f)
     except Exception as e:
-      log.error("States: _save_states {!r}".format(e.message))
+      log.error("{}: {}".format(type(e).__name__, e))
   
   def _load_states(self):
     try: # unpickle in states[] listet vars to class.name-File
@@ -76,7 +76,7 @@ class States(object):
             if key in self.states:
               setattr(self,key,value)
     except Exception as e:
-      log.error("States: _load_states {!r}".format(e.message))
+      log.error("{}: {}".format(type(e).__name__, e))
 
 class Control(States):
 
@@ -112,13 +112,27 @@ class LastUpdatedOrderedFIFODict(OrderedDict):
     self.maxsize = maxsize
     super(LastUpdatedOrderedFIFODict, self).__init__()
 
-  def oldest_item(self):
+  def oldest_value(self):
     if self:
-      return next(iter(self.items()))
+      return next(iter(self.values()))
 
-  def newest_item(self):
+  def oldest_key(self):
     if self:
-      return next(reversed(self.items()))
+      return next(iter(self.keys()))
+
+  def newest_value(self):
+    if self:
+      return next(reversed(self.values()))
+
+  def newest_key(self):
+    if self:
+      return next(reversed(self.keys()))
+  
+  def is_newest(self,key):
+    return self.newest_key() == key
+
+  def is_oldest(self,key):
+    return self.oldest_key() == key
   
   def __setitem__(self, key, value):
     if key in self:

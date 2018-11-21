@@ -16,7 +16,7 @@ class Volume(Control):
   def __init__(self):
     self.mute = False
     super(Volume, self).__init__()
-    if self.volume == 0: #dont start silent
+    if self.volume in range(0,5) + range(90,100): #dont start silent/loud
       self.volume = Config.volume_default
   
   def button_up(self,e):
@@ -46,7 +46,7 @@ class Volume(Control):
 
 class Track(Control):
 
-  states = ["track_state"]
+  states = ["last_rfids"]
 
   def __init__(self):
     self.check_play_state()
@@ -59,10 +59,10 @@ class Track(Control):
     log.debug("Track.button_up")
     if getattr(self,"button_down_last",e.time) + 2 < e.time:
       log.debug("Track Pos0")
-      #mpd.seek(0,0)
+      mpd.seek(0,0)
     else:
       log.debug("Track Pause")
-      #mpd.pause()
+      mpd.pause()
 
   def button_down(self,e):
     self.button_down_last = e.time
@@ -72,12 +72,13 @@ class Track(Control):
     log.debug("Track.rotary")
 
   def id(self,e):
-    log.debug("Card.id {:s}".format(e.value))
+    log.debug("Track: card_id {:s}".format(e.value))
     # TODO make *bling*
-    current_rfid = self.last_rfids.newest_item()
+    current_rfid = self.last_rfids.newest_key()
+    log.debug("Track: current Track {!r}".format(current_rfid))
     if current_rfid:
       self.last_rfids[current_rfid] = self.track_state
-      if current_rfid <> e.value:
+      if not self.last_rfids.is_newest(e.value):
         if  e.value in self.last_rfids and \
             self.last_rfids[e.value].time + 60 > time():
           # resume old state?
@@ -103,16 +104,15 @@ class Track(Control):
       current_rfid, _ = self.last_rfids.newest_item()
       return TrackState(current_rfid)
   
-  # this will set the last Track on init
   @track_state.setter
   def track_state(self,v):
     self.last_rfids[v.rfid] = v
-    if v.play:
-      log.debug("Track: Playing RFID {!r}".format(v.rfid))
   
   @setInterval(10)
   def check_play_state(self):
-    if mpd.status().get("state",None) == "play":
+    status = mpd.status()
+    log.debug(status)
+    if status.get("state",None) == "play":
       # save state only on play
       self.save_state(atcall=True)
   
@@ -125,8 +125,3 @@ class Track(Control):
       self.track_state = TrackState(rfid)
     else:
       log.debug("Track: RFID {!r} unknown.".format(rfid))
-
-    
-
-
-

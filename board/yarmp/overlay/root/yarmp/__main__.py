@@ -3,7 +3,7 @@ import Queue, logging as log, importlib as imp
 from .config import Config
 from .devices import EvDevReceiver, RfidReceiver
 
-log.basicConfig(level=log.INFO, format='%(relativeCreated)6d %(threadName)s %(message)s')
+log.basicConfig(level=log.DEBUG, format='%(relativeCreated)6d %(threadName)s %(message)s')
 
 queue = Queue.Queue()
 
