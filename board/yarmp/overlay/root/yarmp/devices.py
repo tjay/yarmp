@@ -6,7 +6,6 @@ from .config import Config
 from .utils import Event
 
 class Receiver(threading.Thread):
-
     def __init__(self, queue, name="Receiver"):
         self.stop_event = threading.Event()
         self.parent = threading.current_thread()

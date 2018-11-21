@@ -1,36 +1,37 @@
-import sys
+import sys, logging as log
 from mpd import MPDClient
 from mpd.base import ConnectionError
 from threading import Lock
 
 from .config import Config
 
-_lock = Lock()
-
 class YarmpMPD(object):
     
+    _lock = Lock()
+    _reconnect = ConnectionError
+    _log = log
 
-    def __init__(self):
+    def __init__(self,socket):
+        self.socket = socket
         self.mpd = MPDClient()
-        self.yarmp_connect()
-
-    def yarmp_connect(self):
-        self.mpd.connect(Config.mpd_socket)
         self.mpd.idletimeout = None
         self.mpd.timeout = None
+        self.mpd.connect(socket)
 
     def __getattr__(self, attr):
         if hasattr(self.mpd, attr):
             def wrapper(*args, **kw):
-                _lock.acquire() #MPDClient is not threadsafe
+                self._lock.acquire() #MPDClient is not threadsafe
                 try:
                     return getattr(self.mpd, attr)(*args, **kw)
-                except ConnectionError:
-                    self.mpd.connect(Config.mpd_socket)
+                except self._reconnect:
+                    self.mpd.connect(self.socket)
                     return getattr(self.mpd, attr)(*args, **kw)
+                except Exception as e:
+                    self._log.error("{}: {}".format(type(e).__name__, e))
                 finally:
-                    _lock.release()
+                    self._lock.release()
             return wrapper
         raise AttributeError(attr)
 
-sys.modules[__name__] = YarmpMPD()
+sys.modules[__name__] = YarmpMPD(Config.mpd_socket)
