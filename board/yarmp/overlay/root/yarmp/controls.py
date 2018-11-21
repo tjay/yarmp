@@ -57,7 +57,7 @@ class Track(Control):
 
   def button_up(self,e):
     log.debug("Track.button_up")
-    if getattr(self,"button_down_last",e.time) + 2 < e.time:
+    if getattr(self,"button_down_last",e.time) + 1 < e.time:
       log.debug("Track Pos0")
       mpd.seek(0,0)
     else:
