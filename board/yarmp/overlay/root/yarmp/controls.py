@@ -101,7 +101,7 @@ class Track(Control):
   @property
   def track_state(self):
     if self.last_rfids:
-      current_rfid, _ = self.last_rfids.newest_item()
+      current_rfid = self.last_rfids.newest_key()
       return TrackState(current_rfid)
   
   @track_state.setter
