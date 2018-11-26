@@ -6,37 +6,36 @@ import ympd as mpd
 from .config import Config
 
 class Event(object):
-    __slots__ = ['time', 'device', 'function', 'value']
-    def __init__(self, time, device, function, value):
-        self.time = time
-        self.device = device
-        self.function = function
-        self.value = value
+  __slots__ = ['time', 'device', 'function', 'value']
+  def __init__(self, time, device, function, value):
+    self.time = time
+    self.device = device
+    self.function = function
+    self.value = value
 
-    def __str__(self):
-        msg = 'event at {:f}, code {!r}, type {!r}, val {!r}'
-        return msg.format(self.time, self.device, self.function, self.value)
+  def __str__(self):
+    msg = 'event at {:f}, code {!r}, type {!r}, val {!r}'
+    return msg.format(self.time, self.device, self.function, self.value)
 
 def setInterval(interval):
-    def decorator(function):
-        def wrapper(*args, **kwargs):
-            stopped = threading.Event()
-            def loop(parent): # executed in another thread
-                wait = 0.5
-                wait_intervals = 0
-                assert interval > 0
-                while not stopped.wait(wait): # until stopped
-                    wait_intervals+=wait
-                    if not parent.is_alive():
-                        stopped.set()
-                    if wait_intervals >= interval:
-                        wait_intervals = 0
-                        function(*args, **kwargs)
-
-            t = threading.Thread(target=loop,name="SaveLoop",args=(threading.current_thread(),))
-            t.start()
-        return wrapper
-    return decorator
+  def decorator(function):
+    def wrapper(*args, **kwargs):
+      stopped = threading.Event()
+      def loop(parent): # executed in another thread
+        wait = 0.5
+        wait_intervals = 0
+        assert interval > 0
+        while not stopped.wait(wait): # until stopped
+          wait_intervals+=wait
+          if not parent.is_alive():
+            stopped.set()
+          if wait_intervals >= interval:
+            wait_intervals = 0
+            function(*args, **kwargs)
+      t = threading.Thread(target=loop,name="SaveLoop",args=(threading.current_thread(),))
+      t.start()
+    return wrapper
+  return decorator
 
 class States(object):
 

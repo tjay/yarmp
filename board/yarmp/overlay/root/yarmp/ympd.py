@@ -7,7 +7,7 @@ from .config import Config
 
 class YarmpMPD(object):
     
-    _lock = Lock()
+    _lock = Lock()  
     _reconnect = ConnectionError
     _log = log
 

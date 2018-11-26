@@ -1,4 +1,4 @@
-import logging as log, os
+import logging as log, os, threading
 from time import time
 
 from .utils import setInterval, LastUpdatedOrderedFIFODict, TrackState, Control
@@ -20,11 +20,11 @@ class Volume(Control):
       self.volume = Config.volume_default
   
   def button_up(self,e):
-    if not self.mute: # save last state
+    if self.volume > 0: # save last state
       self.mute = self.volume
       self.volume = 0
     else: # resume last state
-      self.volume = self.mute
+      self.volume = self.mute if self.mute else Config.volume_default
       self.mute = False
 
   def button_down(self,e):
@@ -51,6 +51,7 @@ class Track(Control):
   def __init__(self):
     self.check_play_state()
     self.last_rfids = LastUpdatedOrderedFIFODict(maxsize=10)
+    self.rcl={"skip_time":time(),"timer":None, 1L:[], -1L:[]} # rotary positive / negative time list
     super(Track, self).__init__()
 
   ### events #############
@@ -60,7 +61,7 @@ class Track(Control):
     if getattr(self,"button_down_last",e.time) + 1 < e.time:
       log.debug("Track Pos0")
       mpd.seek(0,0)
-    else:
+    elif(getattr(self,"button_down_last",e.time) + 0.2 < e.time):
       log.debug("Track Pause")
       mpd.pause()
 
@@ -69,7 +70,31 @@ class Track(Control):
     log.debug("Track.button_down")
   
   def rotary(self,e):
-    log.debug("Track.rotary")
+    if self.rcl["timer"]:
+      self.rcl["timer"].cancel()
+      self.rcl["timer"].join()
+
+    self.rcl[e.value*-1] = []
+    self.rcl[e.value].append(e.time)
+    avg_tick = 99
+    if len(self.rcl[e.value]) > 1:
+      deltas = [b-a for a, b in zip(self.rcl[e.value][:-1], self.rcl[e.value][1:])]
+      avg_tick = sum(deltas)/len(deltas)
+
+    # log.debug("Track: avg_tick {!r}".format(avg_tick))
+    
+    if e.time - self.rcl["skip_time"] > 0.5 and len(self.rcl[e.value]) > 5 and avg_tick < 0.09:
+      self.skip(e.value) # skip +-
+      self.rcl["skip_time"] = e.time
+      self.rcl["timer"] = threading.Timer(1, self.clear_rcl, args=(e.value,))
+    elif e.time - self.rcl["skip_time"] > 2 and  0.10 <= avg_tick <= 1:  # seek +-
+      self.seek(e.value)
+      self.rcl["timer"] = threading.Timer(0.5, self.clear_rcl, args=(e.value,))
+    else:
+      self.rcl["timer"] = threading.Timer(0.2, self.clear_rcl, args=(e.value,))
+    # clear trick-list if we make a pause
+    self.rcl["timer"].name = "seekTimer"
+    self.rcl["timer"].start()
 
   def id(self,e):
     log.debug("Track: card_id {:s}".format(e.value))
@@ -98,6 +123,15 @@ class Track(Control):
 
   #####################################
 
+  def seek(self, value):
+    log.debug("Track: seek {!r}".format(value))
+
+  def clear_rcl(self,value):
+    del self.rcl[value][:]
+
+  def skip(self,value):
+    log.debug("Track: skip {!r}".format(value))
+
   @property
   def track_state(self):
     if self.last_rfids:
@@ -111,7 +145,6 @@ class Track(Control):
   @setInterval(10)
   def check_play_state(self):
     status = mpd.status()
-    log.debug(status)
     if status.get("state",None) == "play":
       # save state only on play
       self.save_state(atcall=True)
