@@ -98,13 +98,11 @@ class Control(States):
         raise NotImplementedError(Config.controls[event.device])
 
 class TrackState(object):
-  def __init__(self, rfid):
-    self.time = time()
+  def __init__(self, rfid=None):
+    self.timestamp = time()
     self.rfid = rfid
-    status = mpd.status() # pylint: disable=no-member
-    self.track = mpd.currentsong().get("file","") # pylint: disable=no-member
-    self.play = status.get("state",None) == "play"
-    self.elapsed = status.get("time",0) if not self.track.startswith("http") else 0
+    for k,v in mpd.status(): # pylint: disable=no-member
+      setattr(self,k,v)
 
 class LastUpdatedOrderedFIFODict(OrderedDict):
   def __init__(self, maxsize = 10):

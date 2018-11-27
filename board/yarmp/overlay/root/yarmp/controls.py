@@ -1,4 +1,4 @@
-import logging as log, os, threading
+import logging as log, os, threading, re
 from time import time
 
 from .utils import setInterval, LastUpdatedOrderedFIFODict, TrackState, Control
@@ -51,7 +51,7 @@ class Track(Control):
   def __init__(self):
     self.check_play_state()
     self.last_rfids = LastUpdatedOrderedFIFODict(maxsize=10)
-    self.rcl={"skip_time":time(),"timer":None, 1L:[], -1L:[]} # rotary positive / negative time list
+    self.rcl={"skip_time":time()-5,"timer":None, 1L:[], -1L:[]} # rotary positive / negative time list
     super(Track, self).__init__()
 
   ### events #############
@@ -59,10 +59,11 @@ class Track(Control):
   def button_up(self,e):
     log.debug("Track.button_up")
     if getattr(self,"button_down_last",e.time) + 1 < e.time:
-      log.debug("Track Pos0")
+      log.debug("Track Seek to Playlist(0,0)")
       mpd.seek(0,0)
-    elif(getattr(self,"button_down_last",e.time) + 0.2 < e.time):
-      log.debug("Track Pause")
+      mpd.play(0)
+    elif(getattr(self,"button_down_last",e.time) + 0.1 < e.time):
+      log.debug("Track Toggle Pause")
       mpd.pause()
 
   def button_down(self,e):
@@ -80,32 +81,31 @@ class Track(Control):
     if len(self.rcl[e.value]) > 1:
       deltas = [b-a for a, b in zip(self.rcl[e.value][:-1], self.rcl[e.value][1:])]
       avg_tick = sum(deltas)/len(deltas)
-
     # log.debug("Track: avg_tick {!r}".format(avg_tick))
-    
-    if e.time - self.rcl["skip_time"] > 0.5 and len(self.rcl[e.value]) > 5 and avg_tick < 0.09:
+    if e.time - self.rcl["skip_time"] > 0.5 and len(self.rcl[e.value]) > 4 and avg_tick < 0.09:
       self.skip(e.value) # skip +-
       self.rcl["skip_time"] = e.time
       self.rcl["timer"] = threading.Timer(1, self.clear_rcl, args=(e.value,))
+      self.rcl["timer"].start()
     elif e.time - self.rcl["skip_time"] > 2 and  0.10 <= avg_tick <= 1:  # seek +-
       self.seek(e.value)
       self.rcl["timer"] = threading.Timer(0.5, self.clear_rcl, args=(e.value,))
+      self.rcl["timer"].start()
     else:
       self.rcl["timer"] = threading.Timer(0.2, self.clear_rcl, args=(e.value,))
+      self.rcl["timer"].start()
     # clear trick-list if we make a pause
-    self.rcl["timer"].name = "seekTimer"
-    self.rcl["timer"].start()
 
   def id(self,e):
     log.debug("Track: card_id {:s}".format(e.value))
     # TODO make *bling*
     current_rfid = self.last_rfids.newest_key()
-    log.debug("Track: current Track {!r}".format(current_rfid))
+    log.debug("Track: current RFID {!r}".format(current_rfid))
     if current_rfid:
       self.last_rfids[current_rfid] = self.track_state
       if not self.last_rfids.is_newest(e.value):
         if  e.value in self.last_rfids and \
-            self.last_rfids[e.value].time + 60 > time():
+            self.last_rfids[e.value].timestamp + 120 > time():
           # resume old state?
           log.debug("Track: Resume RFID {!r}".format(e.value))
           self.start_playback(e.value,resume=True)
@@ -125,36 +125,60 @@ class Track(Control):
 
   def seek(self, value):
     log.debug("Track: seek {!r}".format(value))
+    status = self.track_state
+    pos = float(status.elapsed)+5*value
+    if status.getatttr("duration",None):
+      duration = float(status.duration)
+      if 0 < pos < duration:
+        mpd.seekid(status.songid,pos)
+      elif int(status.playlistlength)>1:
+        self.skip(value)
+    elif int(status.playlistlength)>1:
+      self.skip(value)
 
   def clear_rcl(self,value):
     del self.rcl[value][:]
 
   def skip(self,value):
     log.debug("Track: skip {!r}".format(value))
+    if int(self.track_state.playlistlength)>1:
+      #sound
+      if value > 0: mpd.next()
+      else: mpd.previous()
 
   @property
   def track_state(self):
-    if self.last_rfids:
-      current_rfid = self.last_rfids.newest_key()
-      return TrackState(current_rfid)
-  
-  @track_state.setter
-  def track_state(self,v):
-    self.last_rfids[v.rfid] = v
+    rfid = self.last_rfids.newest_key()
+    if rfid:
+      self.last_rfids[rfid] = TrackState(rfid)
+    return TrackState(rfid)
   
   @setInterval(10)
   def check_play_state(self):
-    status = mpd.status()
-    if status.get("state",None) == "play":
+    status = self.track_state
+    if status.state == "play" and status.getattr("duration",None):
       # save state only on play
       self.save_state(atcall=True)
   
   def start_playback(self,rfid, resume=False):
-    rfids = {"08008BDC09" : "http://rbb-fritz-live.cast.addradio.de/rbb/fritz/live/mp3/128/stream.mp3"}
-    if rfid in rfids:
+    playlist = None
+    for pl in mpd.listplaylists():
+      match = re.search("^RFID-{!s}".format(rfid),pl)
+      if match:
+        playlist = match.group()
+        break
+    if playlist:
       mpd.clear()
-      mpd.add(rfids[rfid])
-      mpd.play(0)
-      self.track_state = TrackState(rfid)
+      mpd.load(playlist)
+      if resume:
+        track_state = self.last_rfids[rfid]
+        if track_state.getattr("duration",None):
+          mpd.seekid(track_state.songid,float(track_state.elapsed)-5)
+        else:
+          mpd.seekid(track_state.songid,0)
+        mpd.play(track_state.songid)
+      else:
+        mpd.play(0)
     else:
+      #sound
       log.debug("Track: RFID {!r} unknown.".format(rfid))
