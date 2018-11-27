@@ -1,5 +1,3 @@
-
-
 class Config(object):
     mpd_socket='/var/run/mpd.socket'
 
@@ -13,6 +11,6 @@ class Config(object):
         'button@11' : "Track",
         'ttyAMA0' :  "Track"
     }
-    volume_default = 20
+    volume_default = 30
     volume_min = 0
     volume_max = 100

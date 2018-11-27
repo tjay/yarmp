@@ -16,7 +16,7 @@ class Volume(Control):
   def __init__(self):
     self.mute = False
     super(Volume, self).__init__()
-    if self.volume in range(0,10) + range(90,100): #dont start silent/loud
+    if self.volume in range(Config.volume_min,Config.volume_min+10) + range(Config.volume_max-10,Config.volume_max): #dont start silent/loud
       self.volume = Config.volume_default
   
   def button_up(self,e):
