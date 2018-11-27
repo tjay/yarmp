@@ -16,19 +16,21 @@ class Volume(Control):
   def __init__(self):
     self.mute = False
     super(Volume, self).__init__()
-    if self.volume in range(0,5) + range(90,100): #dont start silent/loud
+    if self.volume in range(0,10) + range(90,100): #dont start silent/loud
       self.volume = Config.volume_default
   
   def button_up(self,e):
-    if self.volume > 0: # save last state
-      self.mute = self.volume
-      self.volume = 0
-    else: # resume last state
-      self.volume = self.mute if self.mute else Config.volume_default
-      self.mute = False
+    if getattr(self,"button_down_last",e.time) + 0.1 < e.time:
+      if self.volume > 0: 
+        self.mute = self.volume # save last state
+        self.volume = 0
+      else: # resume last state
+        self.volume = self.mute if self.mute else Config.volume_default
+        self.mute = False
 
   def button_down(self,e):
-    pass
+    self.button_down_last = e.time
+    log.debug("Volume.button_down")
   
   def rotary(self,e):
     if not self.mute:
@@ -123,11 +125,14 @@ class Track(Control):
 
   #####################################
 
+  def clear_rcl(self,value):
+    del self.rcl[value][:]
+
   def seek(self, value):
     log.debug("Track: seek {!r}".format(value))
     status = self.track_state
     pos = float(status.elapsed)+5*value
-    if status.getatttr("duration",None):
+    if getattr(status,"duration",None):
       duration = float(status.duration)
       if 0 < pos < duration:
         mpd.seekid(status.songid,pos)
@@ -135,9 +140,6 @@ class Track(Control):
         self.skip(value)
     elif int(status.playlistlength)>1:
       self.skip(value)
-
-  def clear_rcl(self,value):
-    del self.rcl[value][:]
 
   def skip(self,value):
     log.debug("Track: skip {!r}".format(value))
@@ -156,7 +158,7 @@ class Track(Control):
   @setInterval(10)
   def check_play_state(self):
     status = self.track_state
-    if status.state == "play" and status.getattr("duration",None):
+    if status.state == "play" and getattr(status,"duration",None):
       # save state only on play
       self.save_state(atcall=True)
   
@@ -172,7 +174,7 @@ class Track(Control):
       mpd.load(playlist)
       if resume:
         track_state = self.last_rfids[rfid]
-        if track_state.getattr("duration",None):
+        if getattr(track_state,"duration",None):
           mpd.seekid(track_state.songid,float(track_state.elapsed)-5)
         else:
           mpd.seekid(track_state.songid,0)
