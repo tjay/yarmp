@@ -1,4 +1,5 @@
 class Config(object):
+    
     mpd_socket='/var/run/mpd.socket'
 
     base_dir='/storage'

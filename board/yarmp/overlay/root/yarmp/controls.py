@@ -1,4 +1,4 @@
-import logging as log, os, threading, re
+import logging as log, os, threading, re, subprocess as sub
 from time import time
 
 from .utils import setInterval, LastUpdatedOrderedFIFODict, TrackState, Control
@@ -15,6 +15,7 @@ class Volume(Control):
 
   def __init__(self):
     self.mute = False
+    self.last_volume_fx = None
     super(Volume, self).__init__()
     if self.volume in range(Config.volume_min,Config.volume_min+10) + range(Config.volume_max-10,Config.volume_max): #dont start silent/loud
       self.volume = Config.volume_default
@@ -36,6 +37,13 @@ class Volume(Control):
     if not self.mute:
       self.volume += e.value
 
+  def volume_fx(self,volume):
+    value=volume/10
+    if value <> self.last_volume_fx:
+      with open(os.devnull, 'w') as dn:
+        sub.Popen(["aplay","{!s}/fx/{!s}.wav".format(Config.base_dir,value)],stdout=dn,stderr=dn)
+    self.last_volume_fx = value
+
   @property
   def volume(self):
     return int(mpd.status()['volume'])
@@ -44,6 +52,7 @@ class Volume(Control):
   @volume.setter
   def volume(self, value):
     if value in self.volume_range:
+      self.volume_fx(value)
       mpd.setvol(value)
 
 class Track(Control):
@@ -73,30 +82,35 @@ class Track(Control):
     log.debug("Track.button_down")
   
   def rotary(self,e):
-    if self.rcl["timer"]:
+
+    try:
       self.rcl["timer"].cancel()
       self.rcl["timer"].join()
-
+    except:pass
+    
     self.rcl[e.value*-1] = []
     self.rcl[e.value].append(e.time)
     avg_tick = 99
+    clear_time = 0.2
+
     if len(self.rcl[e.value]) > 1:
       deltas = [b-a for a, b in zip(self.rcl[e.value][:-1], self.rcl[e.value][1:])]
       avg_tick = sum(deltas)/len(deltas)
-    # log.debug("Track: avg_tick {!r}".format(avg_tick))
+    
+    # skip track on fast roll
     if e.time - self.rcl["skip_time"] > 0.5 and len(self.rcl[e.value]) > 4 and avg_tick < 0.09:
       self.skip(e.value) # skip +-
       self.rcl["skip_time"] = e.time
-      self.rcl["timer"] = threading.Timer(1, self.clear_rcl, args=(e.value,))
-      self.rcl["timer"].start()
+      clear_time = 1
+    # seek track on slow roll
     elif e.time - self.rcl["skip_time"] > 2 and  0.10 <= avg_tick <= 1:  # seek +-
       self.seek(e.value)
-      self.rcl["timer"] = threading.Timer(0.5, self.clear_rcl, args=(e.value,))
-      self.rcl["timer"].start()
-    else:
-      self.rcl["timer"] = threading.Timer(0.2, self.clear_rcl, args=(e.value,))
-      self.rcl["timer"].start()
-    # clear trick-list if we make a pause
+      clear_time = 0.5
+
+    # clear tick-list if we make a pause
+    self.rcl["timer"] = threading.Timer(clear_time, self.clear_rcl, args=(e.value,))
+    self.rcl["timer"].start()
+
 
   def id(self,e):
     log.debug("Track: card_id {:s}".format(e.value))

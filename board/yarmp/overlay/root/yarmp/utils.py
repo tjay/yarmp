@@ -61,8 +61,8 @@ class States(object):
   def _save_states(self):
     try: # pickle in states[] listed vars to class.name-File
       if self.states:
-        with open(os.path.join(Config.base_dir,"."+type(self).__name__), 'w') as f:
-          log.debug("Save the state of {!r}".format(type(self).__name__))
+        with open(os.path.join(Config.base_dir,"."+type(self).__name__.lower()), 'w') as f:
+          log.debug("Save the state of {!r}".format(type(self).__name__.lower()))
           cp.dump({state: getattr(self,state) for state in self.states},f)
     except Exception as e:
       log.error("{}: {}".format(type(e).__name__, e))
@@ -70,12 +70,12 @@ class States(object):
   def _load_states(self):
     try: # unpickle in states[] listet vars to class.name-File
       if self.states:
-        with open(os.path.join(Config.base_dir,"."+type(self).__name__), 'r') as f:
+        with open(os.path.join(Config.base_dir,"."+type(self).__name__.lower()), 'r') as f:
           for key,value in cp.load(f).items():
             if key in self.states:
               setattr(self,key,value)
     except Exception as e:
-      log.error("{}: {}".format(type(e).__name__, e))
+      log.error("{}: {}".format(type(e).__name__.lower(), e))
 
 class Control(States):
 
