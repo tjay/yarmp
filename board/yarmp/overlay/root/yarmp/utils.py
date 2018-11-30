@@ -101,7 +101,7 @@ class TrackState(object):
   def __init__(self, rfid=None):
     self.timestamp = time()
     self.rfid = rfid
-    for k,v in mpd.status(): # pylint: disable=no-member
+    for k,v in mpd.status().items(): # pylint: disable=no-member
       setattr(self,k,v)
 
 class LastUpdatedOrderedFIFODict(OrderedDict):

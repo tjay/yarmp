@@ -41,7 +41,7 @@ class Volume(Control):
     value=volume/10
     if value <> self.last_volume_fx:
       with open(os.devnull, 'w') as dn:
-        sub.Popen(["aplay","{!s}/fx/{!s}.wav".format(Config.base_dir,value)],stdout=dn,stderr=dn)
+        sub.Popen(["madplay","-q","{!s}/fx/{!s}.mp3".format(Config.base_dir,value)],stdout=dn,stderr=dn)
     self.last_volume_fx = value
 
   @property
@@ -82,7 +82,6 @@ class Track(Control):
     log.debug("Track.button_down")
   
   def rotary(self,e):
-
     try:
       self.rcl["timer"].cancel()
       self.rcl["timer"].join()
@@ -145,6 +144,8 @@ class Track(Control):
   def seek(self, value):
     log.debug("Track: seek {!r}".format(value))
     status = self.track_state
+    if status.state != "play":
+      return
     pos = float(status.elapsed)+5*value
     if getattr(status,"duration",None):
       duration = float(status.duration)
@@ -157,7 +158,9 @@ class Track(Control):
 
   def skip(self,value):
     log.debug("Track: skip {!r}".format(value))
-    if int(self.track_state.playlistlength)>1:
+    status = self.track_state
+    if status.state != "play": return
+    if int(status.playlistlength)>1:
       #sound
       if value > 0: mpd.next()
       else: mpd.previous()
