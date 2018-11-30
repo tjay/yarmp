@@ -113,6 +113,7 @@ class Track(Control):
 
   def id(self,e):
     log.debug("Track: card_id {:s}".format(e.value))
+    mpd.sendmessage("ympd",e.value)
     # TODO make *bling*
     current_rfid = self.last_rfids.newest_key()
     log.debug("Track: current RFID {!r}".format(current_rfid))
