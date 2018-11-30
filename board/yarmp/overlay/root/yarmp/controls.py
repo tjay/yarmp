@@ -41,7 +41,7 @@ class Volume(Control):
     value=volume/10
     if value <> self.last_volume_fx:
       with open(os.devnull, 'w') as dn:
-        sub.Popen(["madplay","-q","{!s}/fx/{!s}.mp3".format(Config.base_dir,value)],stdout=dn,stderr=dn)
+        sub.Popen(["mpg123","-a","default","-q","{!s}/fx/{!s}.mp3".format(Config.base_dir,value)],stdout=dn,stderr=dn)
     self.last_volume_fx = value
 
   @property
