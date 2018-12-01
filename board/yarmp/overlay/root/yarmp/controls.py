@@ -113,7 +113,7 @@ class Track(Control):
 
   def id(self,e):
     log.debug("Track: card_id {:s}".format(e.value))
-    mpd.sendmessage("ympd",e.value)
+    mpd.sendmessage("ympd","RFID:"+e.value)
     # TODO make *bling*
     current_rfid = self.last_rfids.newest_key()
     log.debug("Track: current RFID {!r}".format(current_rfid))
@@ -183,22 +183,27 @@ class Track(Control):
   def start_playback(self,rfid, resume=False):
     playlist = None
     for pl in mpd.listplaylists():
-      match = re.search("^RFID-{!s}".format(rfid),pl)
+      match = re.search("^RFID-{!s}".format(rfid),pl['playlist'])
       if match:
         playlist = match.group()
         break
     if playlist:
+      log.info("Found Playlist '{!s}'".format(playlist))
       mpd.clear()
       mpd.load(playlist)
       if resume:
         track_state = self.last_rfids[rfid]
-        if getattr(track_state,"duration",None):
-          mpd.seekid(track_state.songid,float(track_state.elapsed)-5)
+        if getattr(track_state,"song",None):
+          if getattr(track_state,"duration",None):
+            mpd.seek(track_state.song,float(track_state.elapsed)-5)
+          else:
+            mpd.seek(track_state.song,0)
+          mpd.play(track_state.song)
         else:
-          mpd.seekid(track_state.songid,0)
-        mpd.play(track_state.songid)
+          mpd.play(0)
       else:
         mpd.play(0)
+        self.last_rfids[rfid] = TrackState(rfid)
     else:
       #sound
       log.debug("Track: RFID {!r} unknown.".format(rfid))

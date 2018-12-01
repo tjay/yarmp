@@ -48,9 +48,11 @@ class RfidReceiver(Receiver):
   start_byte = "\x02"
   timeout = 1
   bau_rate = 9600
+  re_read = 2.0
 
   def __init__(self, queue, devname):
     self.devname = devname
+    self.last = {"id":0}
     super(RfidReceiver, self).__init__(queue, name="RfidReceiver")
     
   def receive(self):
@@ -66,6 +68,8 @@ class RfidReceiver(Receiver):
               chcksm = chcksm ^ d[pos]
             assert chcksm == d[5], "checksum doesn't match"
             id = ''.join('{:02X}'.format(x) for x in d[:5])
-            self.queue.put(Event(read_time,self.devname,"id",id))
+            if self.last[id] + self.re_read < read_time:
+                self.queue.put(Event(read_time,self.devname,"id",id))
+                self.last[id] = read_time
           except Exception as e:
             self.queue.put(Event(read_time,self.devname,"error",e.message))
