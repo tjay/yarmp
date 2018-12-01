@@ -68,7 +68,7 @@ class RfidReceiver(Receiver):
               chcksm = chcksm ^ d[pos]
             assert chcksm == d[5], "checksum doesn't match"
             id = ''.join('{:02X}'.format(x) for x in d[:5])
-            if self.last[id] + self.re_read < read_time:
+            if self.last.get(id,0) + self.re_read < read_time:
                 self.queue.put(Event(read_time,self.devname,"id",id))
                 self.last[id] = read_time
           except Exception as e:
