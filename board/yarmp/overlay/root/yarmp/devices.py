@@ -71,7 +71,7 @@ class MpdReceiver(Receiver):
 class RfidReceiver(Receiver):
 
   start_byte = "\x02"
-  timeout = 1
+  timeout = 1.0
   bau_rate = 9600
   re_read = 2.0
   devname = Config.rfid_tty

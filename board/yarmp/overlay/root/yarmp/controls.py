@@ -7,27 +7,6 @@ import ympd as mpd
 
 # pylint: disable=no-member
 
-class Mpd(Control):
-
-  def __init__(self):
-    super(Mpd, self).__init__()
-
-  def rfid_options(self,e):
-    if isinstance(e.value,dict) :
-      rfid = e.value.get("rfid",None)
-      options = e.value.get("options",None)
-      if rfid and isinstance(options,dict):
-        try:
-          with open(Config.playlist_options,'r') as f:
-            data = json.load(f)
-        except: data = dict()
-        with open(Config.playlist_options,'w') as f:
-          data[rfid] = options
-          log.debug("Mpd: write playlist_options {!r} {!r}".format(rfid,options))
-          json.dump(data,f,indent=2,separators=(',', ': '))
-
-
-
 class Volume(Control,States):
 
   states =["volume"]
@@ -200,16 +179,9 @@ class Track(Control,States):
       self.save_state(atcall=True)
   
   def start_playback(self,rfid, resume=False):
-    playlist = None
-    for pl in mpd.listplaylists():
-      match = re.search("^RFID-{!s}.*".format(rfid),pl['playlist'])
-      if match:
-        playlist = match.group()
-        break
+    playlist = mpd.load_playlist(rfid)
     if playlist:
       log.info("Found Playlist '{!s}'".format(playlist))
-      mpd.clear()
-      mpd.load(playlist)
       if resume:
         track_state = self.last_rfids[rfid]
         if getattr(track_state,"song",None):
@@ -226,3 +198,22 @@ class Track(Control,States):
     else:
       fx("error")
       log.debug("Track: RFID {!r} unknown.".format(rfid))
+
+class Mpd(Control):
+
+  def __init__(self):
+    super(Mpd, self).__init__()
+
+  def rfid_options(self,e):
+    if isinstance(e.value,dict) :
+      rfid = e.value.get("rfid",None)
+      options = e.value.get("options",None)
+      if rfid and isinstance(options,dict):
+        try:
+          with open(Config.playlist_options,'r') as f:
+            data = json.load(f)
+        except: data = dict()
+        with open(Config.playlist_options,'w') as f:
+          data[rfid] = options
+          log.debug("Mpd: write playlist_options {!r} {!r}".format(rfid,options))
+          json.dump(data,f,indent=2,separators=(',', ': '))

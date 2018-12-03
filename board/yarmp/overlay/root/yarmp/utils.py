@@ -1,4 +1,4 @@
-import threading, logging as log, os, cPickle as cp, subprocess as sub
+import threading, logging as log, os, cPickle as cp, subprocess as sub, json
 from time import sleep, time
 from collections import OrderedDict
 import ympd as mpd
@@ -8,6 +8,13 @@ from .config import Config
 def fx(sound):
   with open(os.devnull, 'w') as dn:
     sub.Popen(["mpg123","-a","default","-q","{!s}/fx/{!s}.mp3".format(Config.base_dir,sound)],stdout=dn,stderr=dn)
+
+def playlist_options():
+  try:
+    with open(Config.playlist_options,'r') as f:
+      return json.load(f)
+  except:
+    return dict()
 
 class Event(object):
   __slots__ = ['time', 'device', 'function', 'value']
