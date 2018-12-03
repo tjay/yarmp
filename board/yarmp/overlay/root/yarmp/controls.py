@@ -1,13 +1,34 @@
-import logging as log, os, threading, re, subprocess as sub
+import logging as log, os, threading, re, json
 from time import time
 
-from .utils import setInterval, LastUpdatedOrderedFIFODict, TrackState, Control
+from .utils import setInterval, LastUpdatedOrderedFIFODict, TrackState, Control, States, fx
 from .config import Config
 import ympd as mpd
 
 # pylint: disable=no-member
 
-class Volume(Control):
+class Mpd(Control):
+
+  def __init__(self):
+    super(Mpd, self).__init__()
+
+  def rfid_options(self,e):
+    if isinstance(e.value,dict) :
+      rfid = e.value.get("rfid",None)
+      options = e.value.get("options",None)
+      if rfid and isinstance(options,dict):
+        try:
+          with open(Config.playlist_options,'r') as f:
+            data = json.load(f)
+        except: data = dict()
+        with open(Config.playlist_options,'w') as f:
+          data[rfid] = options
+          log.debug("Mpd: write playlist_options {!r} {!r}".format(rfid,options))
+          json.dump(data,f,indent=2,separators=(',', ': '))
+
+
+
+class Volume(Control,States):
 
   states =["volume"]
 
@@ -17,7 +38,7 @@ class Volume(Control):
     self.mute = False
     self.last_volume_fx = None
     super(Volume, self).__init__()
-    if self.volume in range(Config.volume_min,Config.volume_min+10) + range(Config.volume_max-10,Config.volume_max): #dont start silent/loud
+    if self.volume in range(Config.volume_min,Config.volume_min+10) + range(Config.volume_max-10,Config.volume_max+5): #dont start silent/loud
       self.volume = Config.volume_default
   
   def button_up(self,e):
@@ -40,8 +61,7 @@ class Volume(Control):
   def volume_fx(self,volume):
     value=volume/10
     if value <> self.last_volume_fx:
-      with open(os.devnull, 'w') as dn:
-        sub.Popen(["mpg123","-a","default","-q","{!s}/fx/{!s}.mp3".format(Config.base_dir,value)],stdout=dn,stderr=dn)
+      fx(value)
     self.last_volume_fx = value
 
   @property
@@ -55,7 +75,7 @@ class Volume(Control):
       self.volume_fx(value)
       mpd.setvol(value)
 
-class Track(Control):
+class Track(Control,States):
 
   states = ["last_rfids"]
 
@@ -71,7 +91,6 @@ class Track(Control):
     log.debug("Track.button_up")
     if getattr(self,"button_down_last",e.time) + 1 < e.time:
       log.debug("Track Seek to Playlist(0,0)")
-      mpd.seek(0,0)
       mpd.play(0)
     elif(getattr(self,"button_down_last",e.time) + 0.1 < e.time):
       log.debug("Track Toggle Pause")
@@ -114,7 +133,6 @@ class Track(Control):
   def id(self,e):
     log.debug("Track: card_id {:s}".format(e.value))
     mpd.sendmessage("ympd","RFID:"+e.value)
-    # TODO make *bling*
     current_rfid = self.last_rfids.newest_key()
     log.debug("Track: current RFID {!r}".format(current_rfid))
     if current_rfid:
@@ -122,16 +140,17 @@ class Track(Control):
       if not self.last_rfids.is_newest(e.value):
         if  e.value in self.last_rfids and \
             self.last_rfids[e.value].timestamp + 120 > time():
-          # resume old state?
           log.debug("Track: Resume RFID {!r}".format(e.value))
           self.start_playback(e.value,resume=True)
         else:
           log.debug("Track: Start RFID {!r}".format(e.value))
           self.start_playback(e.value)
       else:
-        # do nothing
-        # TODO Resume / Restart / Unpause
-        log.debug("Track: RFID {!r} is currenty playing.".format(e.value))
+        log.debug("Track: RFID {!r} is currenty loaded.".format(e.value))
+        track_state = self.track_state
+        if track_state.state in ["pause","stop"]:
+          self.start_playback(e.value,resume=True)
+          
     else:
       # start play rfid
       log.debug("Track: Start RFID {!r}".format(e.value))
@@ -162,7 +181,7 @@ class Track(Control):
     status = self.track_state
     if status.state != "play": return
     if int(status.playlistlength)>1:
-      #sound
+      fx("next")
       if value > 0: mpd.next()
       else: mpd.previous()
 
@@ -183,7 +202,7 @@ class Track(Control):
   def start_playback(self,rfid, resume=False):
     playlist = None
     for pl in mpd.listplaylists():
-      match = re.search("^RFID-{!s}".format(rfid),pl['playlist'])
+      match = re.search("^RFID-{!s}.*".format(rfid),pl['playlist'])
       if match:
         playlist = match.group()
         break
@@ -197,13 +216,13 @@ class Track(Control):
           if getattr(track_state,"duration",None):
             mpd.seek(track_state.song,float(track_state.elapsed)-5)
           else:
-            mpd.seek(track_state.song,0)
-          mpd.play(track_state.song)
+            mpd.play(track_state.song)
         else:
           mpd.play(0)
       else:
         mpd.play(0)
-        self.last_rfids[rfid] = TrackState(rfid)
+      fx("rfid")
+      self.last_rfids[rfid] = TrackState(rfid)
     else:
-      #sound
+      fx("error")
       log.debug("Track: RFID {!r} unknown.".format(rfid))

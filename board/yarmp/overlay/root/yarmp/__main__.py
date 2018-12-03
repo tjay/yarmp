@@ -1,7 +1,7 @@
 import Queue, logging as log, importlib as imp
 
 from .config import Config
-from .devices import EvDevReceiver, RfidReceiver
+from .devices import EvDevReceiver, RfidReceiver, MpdReceiver
 
 log.basicConfig(level=log.DEBUG, format='%(relativeCreated)6d %(threadName)s %(message)s')
 
@@ -11,7 +11,8 @@ cm = imp.import_module('yarmp.controls')
 controls = { c.lower(): getattr(cm,c,cm.Control)() for c in set(Config.controls.values()) }
 
 EvDevReceiver(queue)
-RfidReceiver(queue,Config.rfid_tty)
+RfidReceiver(queue)
+MpdReceiver(queue)
 
 log.info("Start")
 

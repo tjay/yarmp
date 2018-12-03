@@ -1,9 +1,13 @@
-import threading, logging as log, os, cPickle as cp
+import threading, logging as log, os, cPickle as cp, subprocess as sub
 from time import sleep, time
 from collections import OrderedDict
 import ympd as mpd
 
 from .config import Config
+
+def fx(sound):
+  with open(os.devnull, 'w') as dn:
+    sub.Popen(["mpg123","-a","default","-q","{!s}/fx/{!s}.mp3".format(Config.base_dir,sound)],stdout=dn,stderr=dn)
 
 class Event(object):
   __slots__ = ['time', 'device', 'function', 'value']
@@ -45,6 +49,7 @@ class States(object):
     self._load_states()
     self._save_states_time = save_states_time
     self._save_thread = None
+    super(States, self).__init__()
     
   def save_state(self,atcall=False):
     if self.states:
@@ -59,7 +64,7 @@ class States(object):
         self._save_thread.start()
 
   def _save_states(self):
-    try: # pickle in states[] listed vars to class.name-File
+    try: # pickle in states[] listed vars to .class.name-File in base_dir
       if self.states:
         with open(os.path.join(Config.base_dir,"."+type(self).__name__.lower()), 'w') as f:
           log.debug("Save the state of {!r}".format(type(self).__name__.lower()))
@@ -68,7 +73,7 @@ class States(object):
       log.error("{}: {}".format(type(e).__name__, e))
   
   def _load_states(self):
-    try: # unpickle in states[] listet vars to class.name-File
+    try: # unpickle in states[] listet vars to .class.name-File in base_dir
       if self.states:
         with open(os.path.join(Config.base_dir,"."+type(self).__name__.lower()), 'r') as f:
           for key,value in cp.load(f).items():
@@ -77,10 +82,10 @@ class States(object):
     except Exception as e:
       log.error("{}: {}".format(type(e).__name__.lower(), e))
 
-class Control(States):
+class Control(object):
 
-  def __init__(self, save_states_time=3):
-    super(Control, self).__init__(save_states_time=save_states_time)
+  def __init__(self):
+    super(Control, self).__init__()
 
   def error(self,e):
     log.error(e.value)
@@ -89,9 +94,10 @@ class Control(States):
     if event.device not in Config.controls:
       raise NotImplementedError(event.device)
     if Config.controls[event.device] == type(self).__name__:
-      if hasattr(self,event.function):
-        getattr(self,event.function)(event)
-        self.save_state()
+      if hasattr(self,str(event.function)) and callable(getattr(self,str(event.function))):
+        getattr(self,str(event.function))(event)
+        if hasattr(self,"save_state") and callable(getattr(self,"save_state")):
+          getattr(self,"save_state")()
       else:
         raise NotImplementedError("{!r}{!r}".format(type(self).__name__,event.function))
     elif type(self).__name__ == "Control":

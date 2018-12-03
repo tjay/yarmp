@@ -1,9 +1,10 @@
-import threading, evdev, serial, re, logging as log
+import threading, evdev, serial, re, logging as log, json, urllib, os
 from time import time
 from select import select
 
 from .config import Config
 from .utils import Event
+import ympd as mpd
 
 class Receiver(threading.Thread):
     def __init__(self, queue, name="Receiver"):
@@ -43,20 +44,44 @@ class EvDevReceiver(Receiver):
                         if event.keystate == event.key_down:
                             self.queue.put(Event(e.timestamp(),self.devices[fd].name,"button_down",e.value))
 
+class MpdReceiver(Receiver):
+    channel = "yarmp"
+    devname = os.path.basename(Config.mpd_socket)
+
+    def __init__(self, queue):
+        super(MpdReceiver, self).__init__(queue, name="MpdReceiver")
+    
+    def receive(self):
+        # pylint: disable=no-member
+        while not self.stop_event.wait(4):
+            if not self.parent.is_alive():
+                self.stop_event.set()
+            if not self.channel in mpd.subscribed_channels:
+                mpd.subscribe(self.channel)
+                mpd.subscribed_channels.append(self.channel)
+            for msg in mpd.readmessages():
+                try:
+                    read_time = time()
+                    if msg.get("channel") == self.channel:
+                        j =json.loads(urllib.unquote(msg["message"]))
+                        self.queue.put(Event(read_time,self.devname,j["action"],j["value"]))
+                except Exception as e:
+                    self.queue.put(Event(read_time,self.devname,"error",e.message))
+
 class RfidReceiver(Receiver):
 
   start_byte = "\x02"
   timeout = 1
   bau_rate = 9600
   re_read = 2.0
+  devname = Config.rfid_tty
 
-  def __init__(self, queue, devname):
-    self.devname = devname
+  def __init__(self, queue):
     self.last = {"id":0}
     super(RfidReceiver, self).__init__(queue, name="RfidReceiver")
     
   def receive(self):
-    with serial.Serial("/dev/%s"%self.devname, self.bau_rate, timeout = self.timeout) as s:
+    with serial.Serial(self.devname, self.bau_rate, timeout = self.timeout) as s:
       while not self.stop_event.is_set():
         if not self.parent.is_alive(): self.stop_event.set()
         if s.read() == self.start_byte:
@@ -69,7 +94,7 @@ class RfidReceiver(Receiver):
             assert chcksm == d[5], "checksum doesn't match"
             id = ''.join('{:02X}'.format(x) for x in d[:5])
             if self.last.get(id,0) + self.re_read < read_time:
-                self.queue.put(Event(read_time,self.devname,"id",id))
+                self.queue.put(Event(read_time,os.path.basename(self.devname),"id",id))
                 self.last[id] = read_time
           except Exception as e:
-            self.queue.put(Event(read_time,self.devname,"error",e.message))
+            self.queue.put(Event(read_time,os.path.basename(self.devname),"error",e.message))

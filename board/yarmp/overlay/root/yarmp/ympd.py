@@ -16,6 +16,7 @@ class YarmpMPD(object):
         self.mpd = MPDClient()
         self.mpd.idletimeout = None
         self.mpd.timeout = None
+        self.subscribed_channels = []
         self.mpd.connect(socket)
 
     def __getattr__(self, attr):
@@ -26,6 +27,7 @@ class YarmpMPD(object):
                     return getattr(self.mpd, attr)(*args, **kw)
                 except self._reconnect:
                     self.mpd.connect(self.socket)
+                    self.subscribed_channels = []
                     return getattr(self.mpd, attr)(*args, **kw)
                 except Exception as e:
                     self._log.error("{}: {}".format(type(e).__name__, e))
