@@ -1,3 +1,1 @@
--       -1  sudo   -1  -       -           -
-yarmp   -1  yarmp  -1  -       /home/yarmp /bin/sh users    Yarmp User
-
+yarmp   -1  yarmp  -1  -       /storage /bin/sh  users   Yarmp User

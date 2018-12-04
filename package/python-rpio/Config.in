@@ -1,8 +1,0 @@
-config BR2_PACKAGE_PYTHON_RPIO
-	bool "python-rpio"
-	depends on BR2_PACKAGE_PYTHON
-	help
-	  RPIO is an advanced GPIO module for the Raspberry Pi.
-	  
-
-	  https://github.com/metachris/RPIO

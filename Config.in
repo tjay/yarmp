@@ -1,11 +1,11 @@
 menu "Python Packages"
-
 source "$BR2_EXTERNAL_YARMP_PATH/package/python-mpd2/Config.in"
-source "$BR2_EXTERNAL_YARMP_PATH/package/python-rpio/Config.in"
 source "$BR2_EXTERNAL_YARMP_PATH/package/python-evdev/Config.in"
-
 endmenu
 
+menu "HTTP Frontend"
+source "$BR2_EXTERNAL_YARMP_PATH/package/ympdtj/Config.in"
+endmenu
 
 menu "WLAN Configuration"
 
