@@ -8,14 +8,12 @@ null::sysinit:/bin/ln -sf /proc/self/fd/0 /dev/stdin
 null::sysinit:/bin/ln -sf /proc/self/fd/1 /dev/stdout
 null::sysinit:/bin/ln -sf /proc/self/fd/2 /dev/stderr
 null::sysinit:/bin/hostname -F /etc/hostname
-null::sysinit:/bin/chown :555 /dev/input/event* /dev/ttyAMA0 /dev/snd/*
-null::sysinit:/bin/chmod g+rw /dev/input/event* /dev/ttyAMA0 /dev/snd/*
 null::sysinit:/sbin/ifup lo
-
 #
 # start yarmp
 #
 
+null::sysinit:/bin/sh -c /etc/yarmp.sh
 
 #
 #

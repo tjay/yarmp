@@ -13,4 +13,3 @@
 /etc/shadow				f	600	0	0	-	-	-	-	-
 /etc/passwd				f	644	0	0	-	-	-	-	-
 /run					d	775	0	555	-	-	-	-	-
-/storage-template			d	700	444	555	-	-	-	-	-
