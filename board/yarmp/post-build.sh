@@ -17,3 +17,5 @@ if [ ! -f "${TARGET_DIR}/etc/dropbear/dropbear_rsa_host_key" ]; then
   dropbearkey -t dss -f ${TARGET_DIR}/etc/dropbear/dropbear_dss_host_key
   dropbearkey -t ecdsa -f ${TARGET_DIR}/etc/dropbear/dropbear_ecdsa_host_key
 fi
+
+#chown 444:555 ${TARGET_DIR}/storage

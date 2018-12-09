@@ -1,1 +1,1 @@
-yarmp   -1  yarmp  -1  -       /storage /bin/sh  users   Yarmp User
+yarmp   444  yarmp  555  -    /storage /bin/sh  users   Yarmp User

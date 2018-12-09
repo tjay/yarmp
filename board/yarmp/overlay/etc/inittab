@@ -1,7 +1,6 @@
 # Startup the system
 null::sysinit:/sbin/modprobe -q brcmfmac
 null::sysinit:/bin/mount -t proc proc /proc
-#null::sysinit:/bin/mount -o remount,rw /
 null::sysinit:/bin/mkdir -p /dev/pts /dev/shm
 null::sysinit:/bin/mount -a
 null::sysinit:/bin/ln -sf /proc/self/fd /dev/fd
@@ -9,7 +8,7 @@ null::sysinit:/bin/ln -sf /proc/self/fd/0 /dev/stdin
 null::sysinit:/bin/ln -sf /proc/self/fd/1 /dev/stdout
 null::sysinit:/bin/ln -sf /proc/self/fd/2 /dev/stderr
 null::sysinit:/bin/hostname -F /etc/hostname
-null::sysinit:/bin/chown :yarmp /dev/input/event* /dev/ttyAMA0 /dev/snd/*
+null::sysinit:/bin/chown :555 /dev/input/event* /dev/ttyAMA0 /dev/snd/*
 null::sysinit:/bin/chmod g+rw /dev/input/event* /dev/ttyAMA0 /dev/snd/*
 null::sysinit:/sbin/ifup lo
 
