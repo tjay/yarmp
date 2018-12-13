@@ -10,6 +10,7 @@ GENIMAGE_TMP="${BUILD_DIR}/genimage.tmp"
 cat << __EOF__ > "${BINARIES_DIR}/rpi-firmware/config.txt"
 
 kernel=zImage
+
 device_tree=bcm2708-rpi-0-w.dtb
 disable_splash=1
 boot_delay=0
