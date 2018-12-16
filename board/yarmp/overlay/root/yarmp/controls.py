@@ -181,7 +181,7 @@ class Track(Control,States):
       self.save_state(atcall=True)
   
   def start_playback(self,rfid,rfid_options,resume=False):
-    if rfid_options.url:
+    if rfid_options.get("url"):
       playlist = mpd.load_playlist(rfid, source = rfid_options.url)
     else:
       playlist = mpd.load_playlist(rfid)

@@ -12,7 +12,7 @@ class YarmpMPD(object):
     _log = log
     _re = re
     _json = json
-    _default_options = {"resume":False,"repeat":False,"single":False,"crossfade":False,"random":False,"new":True}
+    _default_options = {"url":"","resume":False,"repeat":False,"single":False,"crossfade":False,"random":False,"new":True}
 
     def __init__(self,socket):
         self.socket = socket
