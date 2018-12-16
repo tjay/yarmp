@@ -60,7 +60,7 @@ class Track(Control,States):
 
   def __init__(self):
     self.check_play_state()
-    self.last_rfids = LastUpdatedOrderedFIFODict(maxsize=10)
+    self.last_rfids = LastUpdatedOrderedFIFODict(maxsize=50)
     self.rcl={"skip_time":time()-5,"timer":None, 1L:[], -1L:[]} # rotary positive / negative time list
     super(Track, self).__init__()
 
@@ -111,29 +111,31 @@ class Track(Control,States):
 
   def id(self,e):
     log.debug("Track: card_id {:s}".format(e.value))
-    mpd.sendmessage("ympd","RFID:"+e.value)
+    rfid_options = mpd.load_playlist_options(e.value)
+    mpd.sendmessage("ympd","RFID_OPTIONS:"+json.dumps({"rfid":e.value,"options":rfid_options}))
     current_rfid = self.last_rfids.newest_key()
     log.debug("Track: current RFID {!r}".format(current_rfid))
     if current_rfid:
       self.last_rfids[current_rfid] = self.track_state
       if not self.last_rfids.is_newest(e.value):
         if  e.value in self.last_rfids and \
-            self.last_rfids[e.value].timestamp + 120 > time():
+            (self.last_rfids[e.value].timestamp + 120 > time()
+            or rfid_options.get("resume")):
           log.debug("Track: Resume RFID {!r}".format(e.value))
-          self.start_playback(e.value,resume=True)
+          self.start_playback(e.value,rfid_options,resume=True)
         else:
           log.debug("Track: Start RFID {!r}".format(e.value))
-          self.start_playback(e.value)
+          self.start_playback(e.value,rfid_options)
       else:
         log.debug("Track: RFID {!r} is currenty loaded.".format(e.value))
         track_state = self.track_state
         if track_state.state in ["pause","stop"]:
-          self.start_playback(e.value,resume=True)
+          self.start_playback(e.value,rfid_options,resume=True)
           
     else:
       # start play rfid
       log.debug("Track: Start RFID {!r}".format(e.value))
-      self.start_playback(e.value)
+      self.start_playback(e.value,rfid_options)
 
   #####################################
 
@@ -178,8 +180,11 @@ class Track(Control,States):
       # save state only on play
       self.save_state(atcall=True)
   
-  def start_playback(self,rfid, resume=False):
-    playlist = mpd.load_playlist(rfid)
+  def start_playback(self,rfid,rfid_options,resume=False):
+    if rfid_options.url:
+      playlist = mpd.load_playlist(rfid, source = rfid_options.url)
+    else:
+      playlist = mpd.load_playlist(rfid)
     if playlist:
       log.info("Found Playlist '{!s}'".format(playlist))
       if resume:
@@ -193,6 +198,9 @@ class Track(Control,States):
           mpd.play(0)
       else:
         mpd.play(0)
+      # set saved playback options
+      for mode in ["single","repeat","random","crossfade"]:
+        getattr(mpd,mode)( 1 if rfid_options.get(mode) else 0)
       fx("rfid")
       self.last_rfids[rfid] = TrackState(rfid)
     else:
@@ -204,16 +212,9 @@ class Mpd(Control):
   def __init__(self):
     super(Mpd, self).__init__()
 
-  def rfid_options(self,e):
+  def set_rfid_options(self,e):
     if isinstance(e.value,dict) :
       rfid = e.value.get("rfid",None)
       options = e.value.get("options",None)
       if rfid and isinstance(options,dict):
-        try:
-          with open(Config.playlist_options,'r') as f:
-            data = json.load(f)
-        except: data = dict()
-        with open(Config.playlist_options,'w') as f:
-          data[rfid] = options
-          log.debug("Mpd: write playlist_options {!r} {!r}".format(rfid,options))
-          json.dump(data,f,indent=2,separators=(',', ': '))
+        mpd.save_playlist_options(rfid,options)

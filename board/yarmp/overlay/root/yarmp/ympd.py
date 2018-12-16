@@ -1,4 +1,4 @@
-import sys, logging as log, re
+import sys, logging as log, re, json
 from mpd import MPDClient
 from mpd.base import ConnectionError
 from threading import Lock
@@ -11,6 +11,8 @@ class YarmpMPD(object):
     _reconnect = ConnectionError
     _log = log
     _re = re
+    _json = json
+    _default_options = {"resume":False,"repeat":False,"single":False,"crossfade":False,"random":False,"new":True}
 
     def __init__(self,socket):
         self.socket = socket
@@ -19,6 +21,23 @@ class YarmpMPD(object):
         self.mpd.timeout = None
         self.subscribed_channels = []
         self.mpd.connect(socket)
+
+    def load_playlist_options(self,rfid):
+        try:
+            with open(Config.playlist_options,'r') as f:
+                data = self._json.load(f)
+        except: data = dict()
+        return data.get(rfid,self._default_options)
+
+    def save_playlist_options(self,rfid,options):
+        try:
+            with open(Config.playlist_options,'r') as f:
+                data = self._json.load(f)
+        except: data = dict()
+        with open(Config.playlist_options,'w') as f:
+          data[rfid] = options
+          log.debug("Mpd: write playlist_options {!r} {!r}".format(rfid,options))
+          json.dump(data,f,indent=2,separators=(',', ': ')) 
 
 
     def load_playlist(self,rfid,source=None):
