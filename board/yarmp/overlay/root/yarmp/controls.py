@@ -173,9 +173,9 @@ class Track(Control,States):
 
   @property
   def track_state(self):
-    playlist = self.last_playlist.newest_key()
+    playlist = self.last_playlists.newest_key()
     if playlist:
-      self.last_playlist[playlist] = TrackState(playlist)
+      self.last_playlists[playlist] = TrackState(playlist)
     return TrackState(playlist)
   
   @setInterval(10)
@@ -188,7 +188,7 @@ class Track(Control,States):
   def start_playback(self,playlist,playlist_options,resume=False):
     mpd.load_playlist(playlist,source=playlist_options.get("url"))
     if resume:
-      track_state = self.last_playlist[playlist]
+      track_state = self.last_playlists[playlist]
       if getattr(track_state,"song",None):
         if getattr(track_state,"duration",None):
           mpd.seek(track_state.song,float(track_state.elapsed)-5)
