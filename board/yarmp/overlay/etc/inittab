@@ -9,6 +9,7 @@ null::sysinit:/bin/ln -sf /proc/self/fd/1 /dev/stdout
 null::sysinit:/bin/ln -sf /proc/self/fd/2 /dev/stderr
 null::sysinit:/bin/hostname -F /etc/hostname
 null::sysinit:/sbin/ifup lo
+null::sysinit:/sbin/haveged
 #
 # start yarmp
 #
