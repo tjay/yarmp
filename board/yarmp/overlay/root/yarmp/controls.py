@@ -19,6 +19,7 @@ class Volume(Control,States):
     super(Volume, self).__init__()
     if self.volume in range(Config.volume_min,Config.volume_min+10) + range(Config.volume_max-10,Config.volume_max+5): #dont start silent/loud
       self.volume = Config.volume_default
+      self.save_state(atcall=True)
   
   def button_up(self,e):
     if getattr(self,"button_down_last",e.time) + 0.1 < e.time:
@@ -56,11 +57,11 @@ class Volume(Control,States):
 
 class Track(Control,States):
 
-  states = ["last_rfids"]
+  states = ["last_playlists"]
 
   def __init__(self):
     self.check_play_state()
-    self.last_rfids = LastUpdatedOrderedFIFODict(maxsize=50)
+    self.last_playlists = LastUpdatedOrderedFIFODict(maxsize=50)
     self.rcl={"skip_time":time()-5,"timer":None, 1L:[], -1L:[]} # rotary positive / negative time list
     super(Track, self).__init__()
 
@@ -110,32 +111,36 @@ class Track(Control,States):
 
 
   def id(self,e):
-    log.debug("Track: card_id {:s}".format(e.value))
-    rfid_options = mpd.load_playlist_options(e.value)
-    mpd.sendmessage("ympd","RFID_OPTIONS:"+json.dumps({"rfid":e.value,"options":rfid_options}))
-    current_rfid = self.last_rfids.newest_key()
-    log.debug("Track: current RFID {!r}".format(current_rfid))
-    if current_rfid:
-      self.last_rfids[current_rfid] = self.track_state
-      if not self.last_rfids.is_newest(e.value):
-        if  e.value in self.last_rfids and \
-            (self.last_rfids[e.value].timestamp + 120 > time()
-            or rfid_options.get("resume")):
-          log.debug("Track: Resume RFID {!r}".format(e.value))
-          self.start_playback(e.value,rfid_options,resume=True)
+    log.debug("Track: RFID {:s}".format(e.value))
+    playlist_options = mpd.load_playlist_options(e.value)
+    playlist, name = mpd.find_playlist(e.value)
+
+    mpd.sendmessage("ympd","RFID_OPTIONS:"+json.dumps({"rfid":e.value,"name":name,"options":playlist_options}))
+    current_playlist = self.last_playlists.newest_key()
+    log.debug("Track: current Playlist {!r}".format(current_playlist))
+    if current_playlist:
+      self.last_playlists[current_playlist] = self.track_state
+      if not self.last_playlists.is_newest(playlist):
+        if playlist in self.last_playlists and \
+            (self.last_playlists[playlist].timestamp + 120 > time()
+            or playlist_options.get("resume")):
+          log.debug("Track: Resume Playlist {!r}".format(playlist))
+          self.start_playback(playlist,playlist_options,resume=True)
         else:
-          log.debug("Track: Start RFID {!r}".format(e.value))
-          self.start_playback(e.value,rfid_options)
+          log.debug("Track: Start Playlist {!r}".format(playlist))
+          self.start_playback(playlist,playlist_options)
       else:
-        log.debug("Track: RFID {!r} is currenty loaded.".format(e.value))
+        log.debug("Track: Playlist {!r} is currenty loaded.".format(playlist))
         track_state = self.track_state
         if track_state.state in ["pause","stop"]:
-          self.start_playback(e.value,rfid_options,resume=True)
-          
+          self.start_playback(playlist,playlist_options,resume=True)
+    elif playlist:
+      # start play playlist
+      log.debug("Track: Start Playlist {!r}".format(playlist))
+      self.start_playback(playlist,playlist_options)
     else:
-      # start play rfid
-      log.debug("Track: Start RFID {!r}".format(e.value))
-      self.start_playback(e.value,rfid_options)
+      fx("error")
+      log.debug("Track: RFID {!r} unknown.".format(e.value))
 
   #####################################
 
@@ -168,10 +173,10 @@ class Track(Control,States):
 
   @property
   def track_state(self):
-    rfid = self.last_rfids.newest_key()
-    if rfid:
-      self.last_rfids[rfid] = TrackState(rfid)
-    return TrackState(rfid)
+    playlist = self.last_playlist.newest_key()
+    if playlist:
+      self.last_playlist[playlist] = TrackState(playlist)
+    return TrackState(playlist)
   
   @setInterval(10)
   def check_play_state(self):
@@ -180,30 +185,24 @@ class Track(Control,States):
       # save state only on play
       self.save_state(atcall=True)
   
-  def start_playback(self,rfid,rfid_options,resume=False):
-    playlist, name = mpd.load_playlist(rfid, source = rfid_options.get("url"))
-    if playlist:
-      mpd.sendmessage("ympd","RFID_OPTIONS:"+json.dumps({"rfid":rfid,"name":name,"options":rfid_options}))
-      log.info("Found Playlist '{!s}'".format(playlist))
-      if resume:
-        track_state = self.last_rfids[rfid]
-        if getattr(track_state,"song",None):
-          if getattr(track_state,"duration",None):
-            mpd.seek(track_state.song,float(track_state.elapsed)-5)
-          else:
-            mpd.play(track_state.song)
+  def start_playback(self,playlist,playlist_options,resume=False):
+    mpd.load_playlist(playlist,source=playlist_options.get("url"))
+    if resume:
+      track_state = self.last_playlist[playlist]
+      if getattr(track_state,"song",None):
+        if getattr(track_state,"duration",None):
+          mpd.seek(track_state.song,float(track_state.elapsed)-5)
         else:
-          mpd.play(0)
+          mpd.play(track_state.song)
       else:
         mpd.play(0)
-      # set saved playback options
-      for mode in ["single","repeat","random","crossfade"]:
-        getattr(mpd,mode)( 1 if rfid_options.get(mode) else 0)
-      fx("rfid")
-      self.last_rfids[rfid] = TrackState(rfid)
     else:
-      fx("error")
-      log.debug("Track: RFID {!r} unknown.".format(rfid))
+      mpd.play(0)
+    # set saved playback options
+    for mode in ["single","repeat","random","crossfade"]:
+      getattr(mpd,mode)( 1 if playlist_options.get(mode) else 0)
+    fx("rfid")
+    self.last_playlist[playlist] = TrackState(playlist)
 
 class Mpd(Control):
 

@@ -43,9 +43,8 @@ class YarmpMPD(object):
             self._json.dump(data,f,indent=2,separators=(',', ': ')) 
 
 
-    def load_playlist(self,rfid,source=None):
-        playlist, name = self.find_playlist(rfid)
-        if playlist:
+    def load_playlist(self,playlist,source=None):
+        if playlist in self.listplaylists():
             self.clear()
             if source:
                 new_playlist = self.listplaylist(source)
@@ -57,8 +56,6 @@ class YarmpMPD(object):
                     self.load(playlist)
             else:
                 self.load(playlist)
-            return playlist, name
-        return None, None
 
     def find_playlist(self,rfid):
         for pl in self.listplaylists():

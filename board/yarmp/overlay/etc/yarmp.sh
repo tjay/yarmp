@@ -1,7 +1,5 @@
 #!/bin/sh
 
-/sbin/haveged &
-
 chown :555 /dev/input/event* /dev/ttyAMA0 /dev/snd/* /run
 chmod g+rw /dev/input/event* /dev/ttyAMA0 /dev/snd/* /run
 
@@ -18,3 +16,5 @@ fi
 sudo -u yarmp touch /tmp/mpd.database /tmp/mpd.state
 sudo -u yarmp mpd
 ympd -u yarmp -h /var/run/mpd.socket &
+
+/sbin/haveged &

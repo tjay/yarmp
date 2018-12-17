@@ -63,10 +63,10 @@ class MpdReceiver(Receiver):
                 try:
                     read_time = time()
                     if msg.get("channel") == self.channel:
-                        j =json.loads(urllib.unquote(msg["message"]))
+                        j =json.loads(urllib.unquote(unicode(msg["message"])))
                         self.queue.put(Event(read_time,self.devname,j["action"],j["value"]))
                 except Exception as e:
-                    self.queue.put(Event(read_time,self.devname,"error",e.message))
+                    self.queue.put(Event(read_time,self.devname,"error",e))
 
 class RfidReceiver(Receiver):
 

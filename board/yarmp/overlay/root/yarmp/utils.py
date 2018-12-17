@@ -111,9 +111,9 @@ class Control(object):
         raise NotImplementedError(Config.controls[event.device])
 
 class TrackState(object):
-  def __init__(self, rfid=None):
+  def __init__(self, playlist=None):
     self.timestamp = time()
-    self.rfid = rfid
+    self.playlist = playlist
     for k,v in mpd.status().items(): # pylint: disable=no-member
       setattr(self,k,v)
 
