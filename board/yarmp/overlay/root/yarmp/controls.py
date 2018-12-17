@@ -202,7 +202,7 @@ class Track(Control,States):
     for mode in ["single","repeat","random","crossfade"]:
       getattr(mpd,mode)( 1 if playlist_options.get(mode) else 0)
     fx("rfid")
-    self.last_playlist[playlist] = TrackState(playlist)
+    self.last_playlists[playlist] = TrackState(playlist)
 
 class Mpd(Control):
 
