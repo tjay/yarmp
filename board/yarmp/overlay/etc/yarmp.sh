@@ -1,5 +1,7 @@
 #!/bin/sh
 
+/sbin/haveged &
+
 chown :555 /dev/input/event* /dev/ttyAMA0 /dev/snd/* /run
 chmod g+rw /dev/input/event* /dev/ttyAMA0 /dev/snd/* /run
 

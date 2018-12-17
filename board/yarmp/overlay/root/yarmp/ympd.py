@@ -58,12 +58,14 @@ class YarmpMPD(object):
             else:
                 self.load(playlist)
             return playlist, name
+        return None, None
 
     def find_playlist(self,rfid):
         for pl in self.listplaylists():
             match = self._re.search("^RFID-{!s}-*(.+)*".format(rfid),pl['playlist'])
             if match:
                 return match.group(), match.group(1)
+        return None, None
 
     def __getattr__(self, attr):
         if hasattr(self.mpd, attr):
