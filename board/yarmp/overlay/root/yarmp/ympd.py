@@ -44,7 +44,7 @@ class YarmpMPD(object):
 
 
     def load_playlist(self,playlist,source=None):
-        if playlist in self.listplaylists():
+        if playlist in [ p['playlist'] for p in self.listplaylists() ]:
             self.clear()
             if source:
                 new_playlist = self.listplaylist(source)
